@@ -1,0 +1,73 @@
+# Mail Merge PWA
+
+This is the installable PWA version of your Gmail Mail Merge tool. It talks
+to a separate Apps Script backend (`MailMergePWA_Code.gs`) over a small JSON
+API instead of being served directly by Apps Script.
+
+## File structure
+
+```
+index.html      — app shell (all 5 tabs, plus first-run setup screen)
+styles.css       — all styling
+app.js           — all application logic (talks to the API via fetch)
+manifest.json    — makes the app installable
+sw.js            — service worker (caches the app shell for fast loads)
+icons/
+  icon-192.png   — placeholder app icon (192×192)
+  icon-512.png   — placeholder app icon (512×512)
+  icon-180.png   — Apple touch icon
+```
+
+Feel free to replace the icons with your own — same filenames, same sizes.
+
+## Setup steps
+
+### 1. Deploy the backend (if you haven't already)
+
+In a **separate** Apps Script project, paste in `MailMergePWA_Code.gs`
+(provided separately) and deploy it:
+
+- Deploy → New Deployment → Web App
+- Execute as: **Me**
+- Who has access: **Anyone**
+- Copy the resulting URL — it ends in `/exec`
+
+### 2. Push these files to GitHub
+
+Create a new repository (or a folder in an existing one) and add all the
+files above, keeping the `icons/` folder structure intact.
+
+### 3. Enable GitHub Pages
+
+In the repo: **Settings → Pages → Source** → choose your branch and the
+folder these files live in (root, or `/docs` if you put them there) → Save.
+
+GitHub will give you a URL like:
+```
+https://yourusername.github.io/your-repo-name/
+```
+
+### 4. First run
+
+Open that URL on your phone or desktop. You'll see a one-time setup screen
+asking for the Apps Script API URL from step 1. Paste it in and tap
+**Connect** — it's saved in the browser's local storage from then on.
+
+### 5. Install as an app
+
+- **Android (Chrome)**: menu → "Add to Home screen" / "Install app"
+- **iPhone (Safari)**: Share button → "Add to Home Screen"
+- **Desktop (Chrome/Edge)**: an install icon appears in the address bar
+
+## Notes
+
+- Since this is a fresh backend, your sheet list, folders, templates, and
+  signature all start empty — set them up again in the Contacts, Attach,
+  Templates, and Settings tabs the same way you did in the original tool.
+- The seasonal templates (Easter, Christmas, Harvest, etc.) are built into
+  the backend automatically — no need to recreate them.
+- Unsubscribe links in emails point straight at the Apps Script URL and
+  work independently of this frontend — recipients don't need the PWA at
+  all to unsubscribe.
+- If you ever need to change the backend URL (e.g. redeploying with a new
+  URL), go to **Settings → Backend Connection** in the app itself.

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1a2535">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<title>Mail Merge</title>
+</head>
+<body>
+
+<!-- ══ FIRST-RUN SETUP SCREEN ══════════════════════════════════ -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-box">
+    <h1>📧 Mail Merge Setup</h1>
+    <p>Paste the Web App URL from your Apps Script backend deployment. You only need to do this once — it's saved on this device.</p>
+    <label class="field-label" style="margin-top:0">Apps Script API URL</label>
+    <input type="text" id="setupApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="btn btn-primary" id="btnSetupSave">Connect</button>
+    <div id="setupResult"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP (hidden until setup is complete) ══════════════ -->
+<div id="app" style="display:none">
+
+  <div class="hdr">
+    <h1>📧 Mail Merge</h1>
+    <p id="headerSub">No sheet selected</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="compose"><span class="icon">✉️</span>Compose</button>
+    <button class="tab" data-tab="templates"><span class="icon">📋</span>Templates</button>
+    <button class="tab" data-tab="attach"><span class="icon">📎</span>Attach</button>
+    <button class="tab" data-tab="contacts"><span class="icon">👥</span>Contacts</button>
+    <button class="tab" data-tab="settings"><span class="icon">⚙️</span>Settings</button>
+  </div>
+
+  <!-- ══ COMPOSE ══════════════════════════════════════════════ -->
+  <div class="panel active" id="panel-compose">
+    <div id="composeAlert"></div>
+
+    <div class="card" style="padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700">Email Template</span>
+          <div id="activeTemplateLabel" style="font-size:14px;font-weight:600;color:var(--accent);margin-top:2px">Loading…</div>
+        </div>
+        <button class="btn-sm btn-secondary" data-goto-tab="templates" style="border-radius:8px">Change</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Email Content</div>
+      <label class="field-label">Subject</label>
+      <input type="text" id="subject" placeholder="e.g. Your newsletter is attached">
+      <div class="toggle-row" style="margin-top:12px;margin-bottom:6px">
+        <label class="field-label" style="margin:0">Message</label>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8">
+          <span>HTML mode</span>
+          <label class="toggle"><input type="checkbox" id="htmlMode"><span class="slider"></span></label>
+        </div>
+      </div>
+      <textarea id="body" rows="6" placeholder="Dear {{name}},
+
+Please find the attached document.
+
+Kind regards"></textarea>
+      <div class="draft-indicator" id="draftIndicator"></div>
+      <p class="hint">Use <strong>{{name}}</strong> to personalise.</p>
+      <button class="btn btn-secondary" id="btnPreviewEmail">👁️ Preview Email</button>
+    </div>
+
+    <div class="card" id="previewCard" style="display:none">
+      <div class="card-title">Ready to Send</div>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num" id="statPending">—</div><div class="stat-label">To send</div></div>
+        <div class="stat"><div class="stat-num" id="statSent" style="color:var(--success)">—</div><div class="stat-label">Already sent</div></div>
+      </div>
+    </div>
+    <button class="btn btn-secondary" id="btnPreview">🔍 Preview Recipients</button>
+    <button class="btn btn-secondary" id="btnTest">🧪 Test Mode (no emails sent)</button>
+    <button class="btn btn-primary" id="btnSend">📤 Send Emails</button>
+    <div class="progress-wrap" id="progressWrap" style="display:none"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="sendResult"></div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">Ad-hoc Recipients</div>
+      <p class="hint" style="margin-bottom:10px">Add extra recipients for this send only.</p>
+      <div id="ahList"></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <label class="field-label" style="margin-top:0">Name</label>
+        <input type="text" id="ahName" placeholder="e.g. John Smith">
+        <label class="field-label">Email</label>
+        <input type="text" id="ahEmail" placeholder="e.g. john@example.com">
+        <div class="toggle-row">
+          <span style="font-size:13px">Also save to active sheet</span>
+          <label class="toggle"><input type="checkbox" id="ahSave"><span class="slider"></span></label>
+        </div>
+        <button class="btn btn-secondary" id="btnAhAdd">+ Add to List</button>
+        <div id="ahResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TEMPLATES ════════════════════════════════════════════ -->
+  <div class="panel" id="panel-templates">
+    <div class="card">
+      <div class="card-title">Select Email Template</div>
+      <p class="hint" style="margin-bottom:12px">Tap a template to set it active. Tap <strong>Edit</strong> to open it in the Settings editor.</p>
+      <div class="template-grid" id="templateGrid"><span class="spinner"></span> Loading…</div>
+      <div id="templateSelectResult"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Create Custom Template</div>
+      <label class="field-label" style="margin-top:0">Name</label>
+      <input type="text" id="newTemplateName" placeholder="e.g. Summer Newsletter">
+      <label class="field-label">Start from</label>
+      <select id="newTemplateBase">
+        <option value="default">Default</option>
+        <option value="easter">Easter</option>
+        <option value="goodfriday">Good Friday</option>
+        <option value="christmas">Christmas</option>
+        <option value="harvest">Harvest</option>
+        <option value="pentecost">Pentecost</option>
+        <option value="newyear">New Year</option>
+      </select>
+      <button class="btn btn-secondary" id="btnCreateTemplate">+ Create Custom Template</button>
+      <div id="newTemplateResult"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Unsubscribe Link</div>
+      <p class="hint" style="margin-bottom:10px">Paste this placeholder into your HTML template wherever you want the unsubscribe link.</p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:13px;color:#86efac;word-break:break-all">{{unsubscribe}}</div>
+      <button class="btn btn-secondary" id="btnCopyUnsub">📋 Copy Placeholder</button>
+      <div id="unsubCopyResult"></div>
+    </div>
+  </div>
+
+  <!-- ══ ATTACH ═══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-attach">
+    <div class="card">
+      <div class="card-title">PDF Folders</div>
+      <p class="hint" style="margin-bottom:12px">Tick the folders to include PDFs from. You can select multiple.</p>
+      <div id="folderList"><span class="spinner"></span> Loading…</div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <label class="field-label" style="margin-top:0">Paste Google Drive Folder URL or ID</label>
+        <input type="text" id="newFolderUrl" placeholder="https://drive.google.com/drive/folders/…">
+        <label class="field-label">Friendly name</label>
+        <input type="text" id="newFolderName" placeholder="e.g. May Newsletter PDFs">
+        <button class="btn btn-secondary" id="btnAddFolder">+ Add Folder</button>
+        <div id="addFolderResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONTACTS ═════════════════════════════════════════════ -->
+  <div class="panel" id="panel-contacts">
+    <div class="card">
+      <div class="card-title">Active Contact Sheet</div>
+      <p class="hint" style="margin-bottom:12px">Tick the sheet to use, link an existing one, or create a new one.</p>
+      <div id="sheetList"><span class="spinner"></span> Loading…</div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <label class="field-label" style="margin-top:0">Link existing sheet — paste URL</label>
+        <input type="text" id="newSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
+        <label class="field-label">Friendly name</label>
+        <input type="text" id="newSheetName" placeholder="e.g. Prayer Group">
+        <button class="btn btn-secondary" id="btnLinkSheet">+ Link Existing Sheet</button>
+        <div id="linkSheetResult"></div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <label class="field-label" style="margin-top:0">Create a new blank sheet</label>
+        <input type="text" id="newSheetCreate" placeholder="e.g. Prayer Group May 2026">
+        <button class="btn btn-primary" id="btnCreateSheet">➕ Create New Sheet</button>
+        <div id="createSheetResult"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Import Contacts</div>
+      <label class="upload-area" for="csvFile">
+        <input type="file" id="csvFile" accept=".csv">
+        <span class="upload-icon">📂</span>
+        <p>Tap to choose a Google Contacts CSV</p>
+        <p style="font-size:11px;margin-top:4px">contacts.google.com → group → Export → Google CSV</p>
+      </label>
+      <div id="importResult"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Add Recipient</div>
+      <label class="field-label" style="margin-top:0">Name</label>
+      <input type="text" id="recipientName" placeholder="e.g. Jane Smith">
+      <label class="field-label">Email</label>
+      <input type="text" id="recipientEmail" placeholder="e.g. jane@example.com">
+      <button class="btn btn-secondary" id="btnAddRecipient">+ Add to Sheet</button>
+      <div id="addRecipientResult"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recipient List</div>
+      <button class="btn btn-secondary" id="btnLoadRecipients">🔄 Load from Active Sheet</button>
+      <div id="recipientList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Manage</div>
+      <button class="btn btn-secondary" id="btnCount">👥 Count Recipients</button>
+      <div id="countResult"></div>
+      <button class="btn btn-danger" id="btnResetStatuses">🔄 Reset All Sent Statuses</button>
+      <p class="hint" style="margin-top:6px">Clears Sent/Failed markers so you can re-send to everyone.</p>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS ═════════════════════════════════════════════ -->
+  <div class="panel" id="panel-settings">
+
+    <div class="card">
+      <div class="card-title">HTML Template Editor</div>
+      <div id="editingTemplateLabel" style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:10px">No template selected — go to Templates tab to choose one</div>
+      <p class="hint" style="margin-bottom:10px">Use <strong>{{body}}</strong>, <strong>{{name}}</strong>, and <strong>{{unsubscribe}}</strong> as placeholders.</p>
+      <div class="tmpl-toolbar">
+        <button class="tbtn tbtn-primary" id="btnTemplateSave">💾 Save</button>
+        <button class="tbtn" id="btnTemplateReset">↩ Reset to Built-in</button>
+        <button class="tbtn" id="btnTemplateFullscreen">⛶ Full Screen</button>
+      </div>
+      <div class="split-editor" id="splitEditor">
+        <button class="fullscreen-close" id="btnTemplateExit">✕ Exit Full Screen</button>
+        <div class="split-code">
+          <div class="split-label">HTML Code</div>
+          <textarea id="templateEditor" spellcheck="false" placeholder="Select a template from the Templates tab and tap Edit to load it here."></textarea>
+        </div>
+        <div class="split-divider" id="splitDivider"></div>
+        <div class="split-preview">
+          <div class="split-label">Live Preview</div>
+          <iframe id="templatePreviewFrame" style="width:100%;flex:1;border:none;background:#fff;border-radius:0 0 6px 6px"></iframe>
+        </div>
+      </div>
+      <div id="templateEditResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sender Options</div>
+      <label class="field-label" style="margin-top:0">Sender Name</label>
+      <input type="text" id="senderName" placeholder="e.g. Andrew van Rooyen">
+      <label class="field-label">Move sent emails to Gmail label</label>
+      <input type="text" id="labelName" value="Mail Merge Sent">
+      <p class="hint" style="margin-top:6px">Leave blank to keep in Sent folder normally.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Send Options</div>
+      <div class="toggle-row">
+        <span>Skip already-sent recipients</span>
+        <label class="toggle"><input type="checkbox" id="skipSent" checked><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Signature Settings</div>
+      <p class="hint" style="margin-bottom:10px">Used in the plain-text version of every email.</p>
+      <label class="field-label" style="margin-top:0">Your Name</label>
+      <input type="text" id="sigName" placeholder="e.g. Andrew van Rooyen">
+      <label class="field-label">Your Title / Role</label>
+      <input type="text" id="sigTitle" placeholder="e.g. Church Administrator">
+      <label class="field-label">Church Name</label>
+      <input type="text" id="sigChurch" placeholder="e.g. Providence Baptist Church">
+      <label class="field-label">Website</label>
+      <input type="text" id="sigWebsite" placeholder="e.g. www.providencebaptist.org">
+      <button class="btn btn-secondary" id="btnSigSave">💾 Save Signature</button>
+      <div id="sigResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Unsubscribe Notifications</div>
+      <label class="field-label" style="margin-top:0">Your email address for unsubscribe alerts</label>
+      <input type="text" id="notifyEmail" placeholder="e.g. yourname@gmail.com">
+      <button class="btn btn-secondary" id="btnNotifySave">💾 Save Notification Email</button>
+      <div id="notifyResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Backend Connection</div>
+      <label class="field-label" style="margin-top:0">Apps Script API URL</label>
+      <input type="text" id="apiUrlSetting" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="btn btn-secondary" id="btnApiUrlSave">💾 Update API URL</button>
+      <div id="apiUrlResult"></div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- ══ PREVIEW MODAL ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>👁️ Email Preview</span>
+      <button id="btnModalClose">✕</button>
+    </div>
+    <div class="modal-subject">
+      <div class="modal-subject-label">Subject</div>
+      <div class="modal-subject-text" id="previewSubject"></div>
+    </div>
+    <iframe id="previewFrame" style="width:100%;height:500px;border:none;background:#fff"></iframe>
+    <div class="modal-footer">
+      <button id="btnModalSend" class="btn btn-primary">📤 Send Emails</button>
+      <button id="btnModalTest" class="btn btn-secondary">🧪 Test Mode</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
