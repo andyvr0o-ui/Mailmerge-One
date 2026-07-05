@@ -16,17 +16,7 @@
 </head>
 <body>
 
-<!-- ══ FIRST-RUN SETUP SCREEN ══════════════════════════════════ -->
-<div class="setup-screen" id="setupScreen">
-  <div class="setup-box">
-    <h1>📧 Mail Merge Setup</h1>
-    <p>Paste the Web App URL from your Apps Script backend deployment. You only need to do this once — it's saved on this device.</p>
-    <label class="field-label" style="margin-top:0">Apps Script API URL</label>
-    <input type="text" id="setupApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
-    <button class="btn btn-primary" id="btnSetupSave">Connect</button>
-    <div id="setupResult"></div>
-  </div>
-</div>
+<!-- No URL setup screen needed — see Settings > Google Account for sign-in -->
 
 <!-- ══ MAIN APP (hidden until setup is complete) ══════════════ -->
 <div id="app" style="display:none">
@@ -284,20 +274,12 @@ Kind regards"></textarea>
     </div>
 
     <div class="card">
-      <div class="card-title">Google Account (Phase 1 test)</div>
-      <p class="hint" style="margin-bottom:10px">Connect your own Google account. Once wired up in Phase 2, all sending and sheet/drive access will run as you.</p>
+      <div class="card-title">Google Account</div>
+      <p class="hint" style="margin-bottom:10px">Connect your Google account once — access stays connected from then on. No URL or setup needed, ever.</p>
       <div id="googleStatus" class="hint">Not connected</div>
       <button class="btn btn-primary" id="btnGoogleConnect">🔐 Connect Google Account</button>
       <button class="btn btn-danger" id="btnGoogleDisconnect" style="display:none">Disconnect</button>
       <div id="googleResult"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Backend Connection</div>
-      <label class="field-label" style="margin-top:0">Apps Script API URL</label>
-      <input type="text" id="apiUrlSetting" placeholder="https://script.google.com/macros/s/.../exec">
-      <button class="btn btn-secondary" id="btnApiUrlSave">💾 Update API URL</button>
-      <div id="apiUrlResult"></div>
     </div>
   </div>
 

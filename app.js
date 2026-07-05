@@ -4,23 +4,22 @@
 //  MailMergePWA_Code.gs for the matching API.
 // ============================================================
 
-const LS_API_URL = 'mm_api_url';
-const LS_API_KEY = 'mm_api_key';
+// The Apps Script backend URL is baked in — it's harmless on its
+// own, since every action now requires a real, live Google sign-in
+// session (see MailMergePWA_Code.gs doPost). No setup step needed.
+const API_URL    = 'https://script.google.com/macros/s/AKfycbzN0dRS7EHXe0wPX6uHGElcbq2436s1TBJeBry6BgpOouISLqfa0r8CYTUdxWS8Fgkp/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
 // Sent as text/plain to avoid a CORS preflight request, which
-// Apps Script Web Apps don't handle. The backend still parses
-// the body as JSON. Every call includes the API key — the
-// backend rejects anything that doesn't match.
+// Apps Script Web Apps don't handle. The signed-in user's email
+// travels with every call so the backend can verify a live session.
 async function apiCall(action, payload = {}) {
-  const url = localStorage.getItem(LS_API_URL);
-  const apiKey = localStorage.getItem(LS_API_KEY);
-  if (!url) throw new Error('API URL not configured.');
-  const res = await fetch(url, {
+  const callerEmail = localStorage.getItem(LS_GOOGLE_EMAIL);
+  const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, apiKey, payload })
+    body: JSON.stringify({ action, payload: { ...payload, callerEmail } })
   });
   if (!res.ok) throw new Error('Network error: ' + res.status);
   return res.json();
@@ -120,38 +119,17 @@ function sp() { return '<span class="spinner"></span> '; }
 function setHTML(id, html) { document.getElementById(id).innerHTML = html; }
 
 // ── SETUP SCREEN ──────────────────────────────────────────────
+// No URL to enter anymore — the app loads straight away, and
+// simply shows a "Connect Google Account" screen until you've
+// signed in. Once connected, it stays connected (refresh token).
 
 function checkSetup() {
-  const url = localStorage.getItem(LS_API_URL);
-  if (url) {
-    document.getElementById('setupScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('apiUrlSetting').value = url;
-    initApp();
-  } else {
-    document.getElementById('setupScreen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+  const email = localStorage.getItem(LS_GOOGLE_EMAIL);
+  document.getElementById('app').style.display = 'block';
+  initApp();
+  if (!email) {
+    switchTab('settings'); // land on Settings so the Connect button is visible
   }
-}
-
-function saveSetupUrl() {
-  const url = document.getElementById('setupApiUrl').value.trim();
-  if (!url) {
-    setHTML('setupResult', ib('info-red', 'Paste your Apps Script Web App URL first.'));
-    return;
-  }
-  if (!url.includes('script.google.com')) {
-    setHTML('setupResult', ib('info-yellow', 'That doesn\'t look like a script.google.com URL — continuing anyway.'));
-  }
-  localStorage.setItem(LS_API_URL, url);
-  checkSetup();
-}
-
-function saveApiUrlFromSettings() {
-  const url = document.getElementById('apiUrlSetting').value.trim();
-  if (!url) { setHTML('apiUrlResult', ib('info-red', 'Enter a URL.')); return; }
-  localStorage.setItem(LS_API_URL, url);
-  setHTML('apiUrlResult', ib('info-green', '✅ API URL updated.'));
 }
 
 // ── TABS ──────────────────────────────────────────────────────
@@ -878,7 +856,6 @@ function initApp() {
   // Settings
   document.getElementById('btnSigSave').addEventListener('click', saveSignature);
   document.getElementById('btnNotifySave').addEventListener('click', saveNotifyEmail);
-  document.getElementById('btnApiUrlSave').addEventListener('click', saveApiUrlFromSettings);
   document.getElementById('btnGoogleConnect').addEventListener('click', connectGoogle);
   document.getElementById('btnGoogleDisconnect').addEventListener('click', disconnectGoogle);
 
@@ -897,7 +874,6 @@ function initApp() {
 // ── BOOTSTRAP ─────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btnSetupSave').addEventListener('click', saveSetupUrl);
   checkSetup();
 
   if ('serviceWorker' in navigator) {
