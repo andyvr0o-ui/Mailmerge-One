@@ -147,7 +147,7 @@ let ahList = [];
 
 function setActiveSheetState(id, name) {
   activeSheetId = id;
-  document.getElementById('headerSub').textContent = 'Active sheet: ' + name;
+  document.getElementById('headerSub').textContent = id ? ('Active sheet: ' + name) : 'No sheet — ad-hoc only';
 }
 
 function setActiveTemplateState(id, label) {
@@ -197,12 +197,17 @@ async function loadSheets() {
 }
 
 function renderSheets(list) {
-  if (!list || !list.length) {
-    setHTML('sheetList', '<p class="hint">No sheets yet. Link an existing one or create a new one below.</p>');
-    document.getElementById('headerSub').textContent = 'No sheet selected';
-    return;
-  }
-  let h = '';
+  list = list || [];
+  const noneActive = !list.some(s => s.active);
+
+  let h = `<div class="list-row">
+    <input type="radio" name="sheetRadio" id="sheetRadioNone" ${noneActive ? 'checked' : ''}>
+    <div class="list-row-info">
+      <div class="list-row-name${noneActive ? ' active-text' : ''}">None — ad-hoc recipients only</div>
+      <div class="list-row-sub">Don't use a contact sheet for this send</div>
+    </div>
+  </div>`;
+
   list.forEach((s, i) => {
     h += `<div class="list-row">
       <input type="radio" name="sheetRadio" data-idx="${i}" ${s.active ? 'checked' : ''}>
@@ -214,15 +219,23 @@ function renderSheets(list) {
     </div>`;
   });
   setHTML('sheetList', h);
+
   const active = list.find(s => s.active);
   if (active) setActiveSheetState(active.id, active.name);
+  else setActiveSheetState('', '');
 
-  document.querySelectorAll('#sheetList input[type=radio]').forEach(r =>
+  document.getElementById('sheetRadioNone').addEventListener('change', selectNoSheet);
+  document.querySelectorAll('#sheetList input[data-idx]').forEach(r =>
     r.addEventListener('change', () => activateSheet(parseInt(r.dataset.idx)))
   );
   document.querySelectorAll('#sheetList .list-row-delete').forEach(b =>
     b.addEventListener('click', () => deleteSheet(parseInt(b.dataset.idx)))
   );
+}
+
+async function selectNoSheet() {
+  const r = await apiCall('setNoSheet');
+  if (r.ok) renderSheets(r.list); else alert(r.error);
 }
 
 async function activateSheet(idx) {
@@ -615,6 +628,11 @@ async function doPreviewRecipients() {
   try {
     const r = await apiCall('getCount', { sheetId: activeSheetId });
     if (!r.ok) { showComposeAlert('info-red', '❌ ' + esc(r.error)); return; }
+    if (r.noSheet) {
+      showComposeAlert('info-blue', 'No sheet selected — sending will only reach your ad-hoc recipients below.');
+      document.getElementById('previewCard').style.display = 'none';
+      return;
+    }
     document.getElementById('statPending').textContent = r.pending;
     document.getElementById('statSent').textContent = r.sent;
     document.getElementById('previewCard').style.display = 'block';
@@ -626,6 +644,7 @@ async function doCount() {
   setHTML('countResult', ib('info-blue', sp() + 'Counting…'));
   try {
     const r = await apiCall('getCount', { sheetId: activeSheetId });
+    if (r.ok && r.noSheet) { setHTML('countResult', ib('info-blue', 'No sheet selected.')); return; }
     setHTML('countResult', r.ok
       ? ib('info-blue', `👥 <strong>${r.pending}</strong> pending · <strong style="color:var(--success)">${r.sent}</strong> sent`)
       : ib('info-red', '❌ ' + esc(r.error)));
