@@ -602,6 +602,130 @@ async function addRecipient() {
   } catch (e) { setHTML('addRecipientResult', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
+// ── ADDRESS BOOK ───────────────────────────────────────────────
+let addressBookSheetId = '';
+
+async function loadAddressBookStatus() {
+  setHTML('addressBookStatus', sp() + 'Loading…');
+  try {
+    const r = await apiCall('getAddressBookSheet');
+    if (r.ok && r.sheet) {
+      addressBookSheetId = r.sheet.id;
+      setHTML('addressBookStatus', ib('info-green', '📖 Linked: ' + esc(r.sheet.name)));
+    } else {
+      addressBookSheetId = '';
+      setHTML('addressBookStatus', '<p class="hint">No address book set up yet. Link or create one below.</p>');
+    }
+  } catch (e) { setHTML('addressBookStatus', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+async function linkAddressBook() {
+  const url  = document.getElementById('abNewUrl').value.trim();
+  const name = document.getElementById('abNewName').value.trim();
+  setHTML('abLinkResult', '');
+  if (!url)  { setHTML('abLinkResult', ib('info-red', 'Paste a Google Sheets URL first.')); return; }
+  if (!name) { setHTML('abLinkResult', ib('info-red', 'Enter a friendly name.')); return; }
+  const parts = url.split('spreadsheets/d/');
+  const id = parts.length > 1 ? parts[1].split('/')[0].split('?')[0] : url.trim();
+  setHTML('abLinkResult', sp() + 'Verifying…');
+  try {
+    const r = await apiCall('linkAddressBookSheet', { id, name });
+    if (!r.ok) { setHTML('abLinkResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    document.getElementById('abNewUrl').value = '';
+    document.getElementById('abNewName').value = '';
+    setHTML('abLinkResult', ib('info-green', '✅ Linked: ' + esc(r.name)));
+    loadAddressBookStatus();
+  } catch (e) { setHTML('abLinkResult', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+async function createAddressBook() {
+  const name = document.getElementById('abCreateName').value.trim();
+  setHTML('abCreateResult', '');
+  if (!name) { setHTML('abCreateResult', ib('info-red', 'Enter a name.')); return; }
+  setHTML('abCreateResult', sp() + 'Creating…');
+  try {
+    const r = await apiCall('createAddressBookSheet', { name });
+    if (!r.ok) { setHTML('abCreateResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    document.getElementById('abCreateName').value = '';
+    setHTML('abCreateResult', ib('info-green', `✅ Created: <strong>${esc(name)}</strong> — <a href="${esc(r.url)}" target="_blank" style="color:#86efac">Open</a>`));
+    loadAddressBookStatus();
+  } catch (e) { setHTML('abCreateResult', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+async function openAddressBookModal() {
+  document.getElementById('addressBookModal').classList.add('open');
+  document.getElementById('abSelectAll').checked = false;
+  setHTML('abContactList', sp() + 'Loading…');
+  try {
+    const r = await apiCall('getAddressBookContacts');
+    if (!r.ok) { setHTML('abContactList', ib('info-red', '❌ ' + esc(r.error))); return; }
+    if (r.noSheet) {
+      setHTML('abContactList', '<p class="hint">No address book set up yet. Go to Settings → Address Book to link or create one.</p>');
+      return;
+    }
+    renderAddressBookContacts(r.list);
+  } catch (e) { setHTML('abContactList', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+function renderAddressBookContacts(list) {
+  if (!list || !list.length) {
+    setHTML('abContactList', '<p class="hint">No contacts in your address book yet — add one below.</p>');
+    return;
+  }
+  let h = '';
+  list.forEach((c) => {
+    const alreadyAdded = ahList.some(a => a.email.toLowerCase() === c.email.toLowerCase());
+    h += `<div class="rc-row">
+      <input type="checkbox" class="ab-contact-check" data-name="${esc(c.name)}" data-email="${esc(c.email)}" ${alreadyAdded ? 'checked disabled' : ''}>
+      <div class="rc-name">${esc(c.name)}</div>
+      <div class="rc-email">${esc(c.email)}</div>
+      ${alreadyAdded ? '<span style="font-size:11px;color:var(--muted)">Added</span>' : ''}
+    </div>`;
+  });
+  setHTML('abContactList', h);
+}
+
+function toggleSelectAllAddressBook() {
+  const checked = document.getElementById('abSelectAll').checked;
+  document.querySelectorAll('.ab-contact-check:not(:disabled)').forEach(c => { c.checked = checked; });
+}
+
+function addSelectedFromAddressBook() {
+  const checks = document.querySelectorAll('.ab-contact-check:checked:not(:disabled)');
+  let added = 0;
+  checks.forEach(c => {
+    const name = c.dataset.name, email = c.dataset.email;
+    if (!ahList.some(a => a.email.toLowerCase() === email.toLowerCase())) {
+      ahList.push({ name, email });
+      added++;
+    }
+  });
+  renderAdhoc();
+  closeAddressBookModal();
+  if (added) setHTML('ahResult', ib('info-green', `✅ Added ${added} contact(s) from Address Book`));
+}
+
+function closeAddressBookModal() {
+  document.getElementById('addressBookModal').classList.remove('open');
+}
+
+async function quickAddToAddressBook() {
+  const name  = document.getElementById('abQuickName').value.trim();
+  const email = document.getElementById('abQuickEmail').value.trim();
+  setHTML('abQuickAddResult', '');
+  if (!email) { setHTML('abQuickAddResult', ib('info-red', 'Enter an email address.')); return; }
+  if (!addressBookSheetId) { setHTML('abQuickAddResult', ib('info-red', 'Set up an Address Book sheet in Settings first.')); return; }
+  setHTML('abQuickAddResult', sp() + 'Adding…');
+  try {
+    const r = await apiCall('addRecipient', { name, email, sheetId: addressBookSheetId });
+    if (!r.ok) { setHTML('abQuickAddResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    document.getElementById('abQuickName').value = '';
+    document.getElementById('abQuickEmail').value = '';
+    setHTML('abQuickAddResult', ib('info-green', '✅ Added to Address Book'));
+    renderAddressBookContacts(r.list);
+  } catch (e) { setHTML('abQuickAddResult', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
 // ── CSV IMPORT ────────────────────────────────────────────────
 
 function handleCSVImport(input) {
@@ -828,6 +952,14 @@ function initApp() {
   document.getElementById('btnTest').addEventListener('click', doTest);
   document.getElementById('btnSend').addEventListener('click', doSend);
   document.getElementById('btnAhAdd').addEventListener('click', addAdhoc);
+  document.getElementById('btnOpenAddressBook').addEventListener('click', openAddressBookModal);
+
+  // Address Book modal
+  document.getElementById('btnAbModalClose').addEventListener('click', closeAddressBookModal);
+  document.getElementById('abSelectAll').addEventListener('change', toggleSelectAllAddressBook);
+  document.getElementById('btnAbAddSelected').addEventListener('click', addSelectedFromAddressBook);
+  document.getElementById('btnAbQuickAdd').addEventListener('click', quickAddToAddressBook);
+  document.getElementById('addressBookModal').addEventListener('click', function (e) { if (e.target === this) closeAddressBookModal(); });
 
   // Preview modal
   document.getElementById('btnModalClose').addEventListener('click', closePreviewModal);
@@ -877,6 +1009,8 @@ function initApp() {
   document.getElementById('btnNotifySave').addEventListener('click', saveNotifyEmail);
   document.getElementById('btnGoogleConnect').addEventListener('click', connectGoogle);
   document.getElementById('btnGoogleDisconnect').addEventListener('click', disconnectGoogle);
+  document.getElementById('btnAbLink').addEventListener('click', linkAddressBook);
+  document.getElementById('btnAbCreate').addEventListener('click', createAddressBook);
 
   // Load initial data
   loadDraft();
@@ -885,6 +1019,7 @@ function initApp() {
   loadTemplates();
   loadSignature();
   loadNotifyEmail();
+  loadAddressBookStatus();
   renderAdhoc();
   initGoogleSignIn();
   checkGoogleStatus();
