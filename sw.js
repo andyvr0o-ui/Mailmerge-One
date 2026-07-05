@@ -3,7 +3,7 @@
 // API calls always go to the network — never cached, since sending mail
 // and reading live sheet data must always be fresh.
 
-const CACHE_NAME = 'mailmerge-shell-v1';
+const CACHE_NAME = 'mailmerge-shell-v1.2';
 
 const APP_SHELL = [
   './',
