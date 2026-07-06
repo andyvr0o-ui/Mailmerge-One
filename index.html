@@ -63,9 +63,10 @@
       <input type="text" id="subject" placeholder="e.g. Your newsletter is attached">
       <div class="toggle-row" style="margin-top:12px;margin-bottom:6px">
         <label class="field-label" style="margin:0">Message</label>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
-          <span>HTML mode</span>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span id="htmlModeLabelOff" style="color:var(--muted)">Auto-template</span>
           <label class="toggle"><input type="checkbox" id="htmlMode"><span class="slider"></span></label>
+          <span id="htmlModeLabelOn" style="color:var(--muted)">Custom HTML</span>
         </div>
       </div>
       <textarea id="body" rows="6" placeholder="Dear {{name}},

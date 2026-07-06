@@ -901,16 +901,22 @@ function updateHtmlModeUI() {
   const on = document.getElementById('htmlMode').checked;
   const textarea = document.getElementById('body');
   const hint = document.getElementById('bodyModeHint');
+  const labelOff = document.getElementById('htmlModeLabelOff');
+  const labelOn  = document.getElementById('htmlModeLabelOn');
+  labelOff.style.color = on ? 'var(--muted)' : 'var(--accent)';
+  labelOff.style.fontWeight = on ? '400' : '700';
+  labelOn.style.color = on ? 'var(--accent)' : 'var(--muted)';
+  labelOn.style.fontWeight = on ? '700' : '400';
   if (on) {
     textarea.style.fontFamily = "'Courier New', monospace";
     textarea.style.fontSize = '13px';
     textarea.placeholder = 'Paste your complete HTML email here — this replaces the template entirely.\n\nUse {{name}} and {{unsubscribe}} as placeholders.';
-    hint.innerHTML = '<strong>HTML mode is ON</strong> — your template is bypassed. What you type here becomes the entire email exactly as written.';
+    hint.innerHTML = '<strong>Custom HTML</strong> — your template is bypassed. What you type here becomes the entire email exactly as written.';
   } else {
     textarea.style.fontFamily = '';
     textarea.style.fontSize = '';
     textarea.placeholder = 'Dear {{name}},\n\nPlease find the attached document.\n\nKind regards';
-    hint.innerHTML = 'Use <strong>{{name}}</strong> to personalise. Your message is automatically placed inside your chosen template.';
+    hint.innerHTML = '<strong>Auto-template</strong> — use <strong>{{name}}</strong> to personalise. Your message is automatically placed inside your chosen template.';
   }
 }
 
