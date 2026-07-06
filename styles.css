@@ -1,13 +1,62 @@
+/* ══════════════════════════════════════════════════════════════
+   THEME SYSTEM
+   Default (no attribute) = dark theme. Add data-theme="light" to
+   <html> to switch. All colours route through these variables so
+   both themes stay in sync with every component automatically.
+   ══════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg: #0f1923;
-  --surface: #1a2535;
-  --border: #2a3a50;
-  --accent: #3b82f6;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warn: #f59e0b;
-  --text: #e2e8f0;
-  --muted: #64748b;
+  /* Dark theme (default) */
+  --bg:          #0f1923;
+  --surface:     #1a2535;
+  --surface-2:   #22314a;
+  --border:      #2f4059;
+  --text:        #f1f5f9;
+  --muted:       #a8b6c9;   /* was #64748b — too dim on dark backgrounds, now much more readable */
+  --accent:      #3b82f6;
+  --accent-hover:#2563eb;
+  --accent-soft: #1e3a5f;
+  --success:     #22c55e;
+  --success-bg:  #14532d;
+  --success-text:#86efac;
+  --danger:      #ef4444;
+  --danger-bg:   #450a0a;
+  --danger-text: #fca5a5;
+  --warn:        #f59e0b;
+  --warn-bg:     #451a03;
+  --warn-text:   #fde68a;
+  --info-bg:     #1e3a5f;
+  --info-text:   #93c5fd;
+
+  /* Intentionally theme-invariant — the code editor keeps its dark
+     "editor" look in both themes, and the email preview area always
+     stays white since it's simulating an actual inbox, not app UI. */
+  --code-bg:     #0a1520;
+  --code-text:   #e2e8f0;
+  --preview-bg:  #ffffff;
+}
+
+[data-theme="light"] {
+  --bg:          #f3f5f9;
+  --surface:     #ffffff;
+  --surface-2:   #eef1f6;
+  --border:      #dbe1ea;
+  --text:        #1a2535;
+  --muted:       #5b6b82;
+  --accent:      #2563eb;
+  --accent-hover:#1d4ed8;
+  --accent-soft: #dbeafe;
+  --success:     #16a34a;
+  --success-bg:  #dcfce7;
+  --success-text:#166534;
+  --danger:      #dc2626;
+  --danger-bg:   #fee2e2;
+  --danger-text: #991b1b;
+  --warn:        #d97706;
+  --warn-bg:     #fef3c7;
+  --warn-text:   #92400e;
+  --info-bg:     #dbeafe;
+  --info-text:   #1e40af;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,6 +67,7 @@ body {
   color: var(--text);
   font-size: 15px;
   line-height: 1.5;
+  transition: background .2s, color .2s;
 }
 
 /* Header */
@@ -87,7 +137,7 @@ label.field-label {
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--muted);
   margin: 12px 0 5px;
 }
 label.field-label:first-child { margin-top: 0; }
@@ -135,14 +185,14 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 
 /* Info boxes */
 .info-box { border-radius: 8px; padding: 11px 13px; font-size: 13px; line-height: 1.5; margin-top: 8px; }
-.info-blue   { background: #1e3a5f; color: #93c5fd; border-left: 3px solid var(--accent); }
-.info-green  { background: #14532d; color: #86efac; border-left: 3px solid var(--success); }
-.info-red    { background: #450a0a; color: #fca5a5; border-left: 3px solid var(--danger); }
-.info-yellow { background: #451a03; color: #fde68a; border-left: 3px solid var(--warn); }
+.info-blue   { background: var(--info-bg);    color: var(--info-text);    border-left: 3px solid var(--accent); }
+.info-green  { background: var(--success-bg); color: var(--success-text); border-left: 3px solid var(--success); }
+.info-red    { background: var(--danger-bg);  color: var(--danger-text);  border-left: 3px solid var(--danger); }
+.info-yellow { background: var(--warn-bg);    color: var(--warn-text);    border-left: 3px solid var(--warn); }
 
 /* Stats */
 .stat-row { display: flex; gap: 10px; margin-bottom: 10px; }
-.stat { flex: 1; background: var(--bg); border-radius: 8px; padding: 10px; text-align: center; }
+.stat { flex: 1; background: var(--surface-2); border-radius: 8px; padding: 10px; text-align: center; }
 .stat-num { font-size: 24px; font-weight: 700; color: var(--accent); }
 .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
@@ -174,6 +224,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 .slider:before {
   content: ''; position: absolute; height: 20px; width: 20px;
   left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
 }
 .toggle input:checked + .slider { background: var(--accent); }
 .toggle input:checked + .slider:before { transform: translateX(18px); }
@@ -190,11 +241,11 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 /* Template grid */
 .template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px; }
 .template-card {
-  background: var(--bg); border: 2px solid var(--border); border-radius: 10px;
+  background: var(--surface-2); border: 2px solid var(--border); border-radius: 10px;
   padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .15s;
 }
 .template-card:hover { border-color: var(--accent); }
-.template-card.active { border-color: var(--accent); background: #1e3a5f; }
+.template-card.active { border-color: var(--accent); background: var(--accent-soft); }
 .template-icon { font-size: 24px; display: block; margin-bottom: 6px; }
 .template-name { font-size: 12px; font-weight: 600; color: var(--text); display: block; }
 .template-badge { font-size: 10px; color: var(--muted); display: block; margin-top: 2px; }
@@ -207,7 +258,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
   width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;
 }
 .list-row-info { flex: 1; min-width: 0; }
-.list-row-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-row-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .list-row-name.active-text { color: var(--accent); }
 .list-row-sub { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-row-delete { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 2px 6px; flex-shrink: 0; }
@@ -216,22 +267,24 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 .ah-row, .rc-row { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
 .ah-row:last-child, .rc-row:last-child { border-bottom: none; }
 .ah-info { flex: 1; min-width: 0; }
-.ah-name, .rc-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.ah-name, .rc-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; color: var(--text); }
 .ah-email, .rc-email { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc-email { flex: 1; min-width: 0; font-size: 12px; }
-.rc-status { font-size: 11px; color: #94a3b8; flex-shrink: 0; white-space: nowrap; }
+.rc-status { font-size: 11px; color: var(--muted); flex-shrink: 0; white-space: nowrap; }
 
 .draft-indicator { font-size: 11px; color: var(--warn); margin-top: 4px; min-height: 14px; }
 
-/* Split editor (Settings > Template editor) */
+/* Split editor (Settings > Template editor) —
+   the code pane intentionally stays dark in both themes, like most
+   code editors do, so it's excluded from the light theme override. */
 .tmpl-toolbar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .tbtn {
   padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
-  border: 1px solid var(--border); background: var(--bg); color: #94a3b8; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-family: inherit;
 }
 .tbtn:hover { border-color: var(--accent); color: var(--accent); }
 .tbtn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.tbtn-primary:hover { background: #2563eb; }
+.tbtn-primary:hover { background: var(--accent-hover); }
 
 .split-editor {
   display: flex; height: 420px; border: 1px solid var(--border);
@@ -240,18 +293,18 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 .split-editor.fullscreen {
   position: fixed; inset: 0; z-index: 200; height: 100vh; border-radius: 0; border: none;
 }
-.split-code { display: flex; flex-direction: column; width: 50%; min-width: 120px; background: #0a1520; }
-.split-preview { display: flex; flex-direction: column; flex: 1; min-width: 120px; background: #fff; }
+.split-code { display: flex; flex-direction: column; width: 50%; min-width: 120px; background: var(--code-bg); }
+.split-preview { display: flex; flex-direction: column; flex: 1; min-width: 120px; background: var(--preview-bg); }
 .split-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
   padding: 6px 10px; background: var(--surface); color: var(--muted); border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.split-code .split-label { border-right: 1px solid var(--border); }
+.split-code .split-label { border-right: 1px solid var(--border); background: #10202f; color: #8ba3bd; }
 .split-preview .split-label { background: #f1f3f4; color: #5f6368; border-bottom: 1px solid #dadce0; }
 .split-editor textarea#tmplEditor {
   flex: 1; width: 100%; resize: none; border: none; border-right: 1px solid var(--border);
   outline: none; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;
-  padding: 10px; background: #0a1520; color: var(--text); tab-size: 2; min-height: 0;
+  padding: 10px; background: var(--code-bg); color: var(--code-text); tab-size: 2; min-height: 0;
 }
 .split-divider { width: 5px; background: var(--border); cursor: col-resize; flex-shrink: 0; transition: background .15s; }
 .split-divider:hover, .split-divider.dragging { background: var(--accent); }
@@ -262,28 +315,34 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
   padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
 }
 
-/* Preview modal */
+/* Modals — the wrapper follows the app theme; any iframe inside
+   (email preview) stays white on its own since it's rendering real
+   email content, not app UI. */
 .modal-overlay {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 100; overflow: auto;
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; overflow: auto;
 }
 .modal-overlay.open { display: block; }
-.modal-box { max-width: 640px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; }
+.modal-box { max-width: 640px; margin: 20px auto; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
 .modal-header {
   background: var(--surface); padding: 14px 18px; display: flex;
-  justify-content: space-between; align-items: center;
+  justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);
 }
 .modal-header span { color: var(--text); font-weight: 700; font-size: 15px; }
 .modal-header button { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; }
 .modal-subject { padding: 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .modal-subject-label { font-size: 12px; color: var(--muted); }
 .modal-subject-text { color: var(--text); font-size: 15px; font-weight: 600; margin-top: 4px; }
-.modal-footer { padding: 14px; background: var(--surface); display: flex; gap: 10px; }
+.modal-footer { padding: 14px; background: var(--surface); display: flex; gap: 10px; border-top: 1px solid var(--border); }
 .modal-footer .btn { margin: 0; flex: 1; }
 
-/* Setup screen (first run — enter API URL) */
-.setup-screen {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+/* Theme toggle (Settings) */
+.theme-switch-row {
+  display: flex; gap: 8px; margin-top: 4px;
 }
-.setup-box { max-width: 420px; width: 100%; }
-.setup-box h1 { font-size: 22px; margin-bottom: 8px; }
-.setup-box p { color: var(--muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
+.theme-option {
+  flex: 1; padding: 12px; border-radius: 10px; text-align: center;
+  border: 2px solid var(--border); cursor: pointer; font-size: 13px; font-weight: 600;
+  color: var(--muted); background: var(--bg);
+}
+.theme-option.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.theme-option .icon { display: block; font-size: 20px; margin-bottom: 4px; }

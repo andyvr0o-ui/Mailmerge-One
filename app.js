@@ -118,6 +118,34 @@ function ib(cls, msg) { return `<div class="info-box ${cls}">${msg}</div>`; }
 function sp() { return '<span class="spinner"></span> '; }
 function setHTML(id, html) { document.getElementById(id).innerHTML = html; }
 
+// ── THEME ─────────────────────────────────────────────────────
+const LS_THEME = 'mm_theme';
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  const darkBtn  = document.getElementById('themeOptionDark');
+  const lightBtn = document.getElementById('themeOptionLight');
+  if (darkBtn && lightBtn) {
+    darkBtn.classList.toggle('active', theme !== 'light');
+    lightBtn.classList.toggle('active', theme === 'light');
+  }
+}
+
+function saveTheme(theme) {
+  try { localStorage.setItem(LS_THEME, theme); } catch (e) {}
+  applyTheme(theme);
+}
+
+function loadTheme() {
+  let theme = 'dark';
+  try { theme = localStorage.getItem(LS_THEME) || 'dark'; } catch (e) {}
+  applyTheme(theme);
+}
+
 // ── SETUP SCREEN ──────────────────────────────────────────────
 // No URL to enter anymore — the app loads straight away, and
 // simply shows a "Connect Google Account" screen until you've
@@ -1011,6 +1039,9 @@ function initApp() {
   document.getElementById('btnGoogleDisconnect').addEventListener('click', disconnectGoogle);
   document.getElementById('btnAbLink').addEventListener('click', linkAddressBook);
   document.getElementById('btnAbCreate').addEventListener('click', createAddressBook);
+  document.getElementById('themeOptionDark').addEventListener('click', () => saveTheme('dark'));
+  document.getElementById('themeOptionLight').addEventListener('click', () => saveTheme('light'));
+  loadTheme(); // sets the active highlight on the correct theme button
 
   // Load initial data
   loadDraft();

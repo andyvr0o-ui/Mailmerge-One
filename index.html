@@ -7,6 +7,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+  // Applied before CSS renders, so there's no flash of the wrong theme
+  (function(){
+    try {
+      var saved = localStorage.getItem('mm_theme');
+      if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    } catch (e) {}
+  })();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
@@ -211,6 +220,18 @@ Kind regards"></textarea>
   <div class="panel" id="panel-settings">
 
     <div class="card">
+      <div class="card-title">Appearance</div>
+      <div class="theme-switch-row">
+        <div class="theme-option" id="themeOptionDark" data-theme-choice="dark">
+          <span class="icon">🌙</span>Dark
+        </div>
+        <div class="theme-option" id="themeOptionLight" data-theme-choice="light">
+          <span class="icon">☀️</span>Light
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-title">HTML Template Editor</div>
       <div id="editingTemplateLabel" style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:10px">No template selected — go to Templates tab to choose one</div>
       <p class="hint" style="margin-bottom:10px">Use <strong>{{body}}</strong>, <strong>{{name}}</strong>, and <strong>{{unsubscribe}}</strong> as placeholders.</p>
@@ -319,7 +340,7 @@ Kind regards"></textarea>
         <label class="toggle"><input type="checkbox" id="abSelectAll"><span class="slider"></span></label>
       </label>
     </div>
-    <div id="abContactList" style="max-height:400px;overflow-y:auto;padding:14px;background:#fff"></div>
+    <div id="abContactList" style="max-height:400px;overflow-y:auto;padding:14px;background:var(--surface)"></div>
     <div style="padding:14px;background:var(--surface);border-top:1px solid var(--border)">
       <label class="field-label" style="margin-top:0;color:#94a3b8">Add a new contact to the Address Book</label>
       <div class="row">
