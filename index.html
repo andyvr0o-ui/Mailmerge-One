@@ -63,7 +63,7 @@
       <input type="text" id="subject" placeholder="e.g. Your newsletter is attached">
       <div class="toggle-row" style="margin-top:12px;margin-bottom:6px">
         <label class="field-label" style="margin:0">Message</label>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
           <span>HTML mode</span>
           <label class="toggle"><input type="checkbox" id="htmlMode"><span class="slider"></span></label>
         </div>
@@ -74,7 +74,7 @@ Please find the attached document.
 
 Kind regards"></textarea>
       <div class="draft-indicator" id="draftIndicator"></div>
-      <p class="hint">Use <strong>{{name}}</strong> to personalise.</p>
+      <p class="hint" id="bodyModeHint">Use <strong>{{name}}</strong> to personalise. Your message is automatically placed inside your chosen template.</p>
       <button class="btn btn-secondary" id="btnPreviewEmail">👁️ Preview Email</button>
     </div>
 

@@ -808,10 +808,12 @@ async function doCount() {
 function buildSendParams(testMode) {
   const subject = document.getElementById('subject').value.trim();
   const body    = document.getElementById('body').value.trim();
+  const htmlMode = document.getElementById('htmlMode').checked;
   if (!subject) { showComposeAlert('info-red', 'Please enter a subject.'); switchTab('compose'); return null; }
   if (!body)    { showComposeAlert('info-red', 'Please enter a message.'); switchTab('compose'); return null; }
   return {
     subject, body,
+    htmlMode,
     folderIds: activeFolderIds(),
     senderName: document.getElementById('senderName').value.trim(),
     labelName: document.getElementById('labelName').value.trim(),
@@ -895,6 +897,23 @@ async function doResetStatuses() {
 
 // ── PREVIEW MODAL ─────────────────────────────────────────────
 
+function updateHtmlModeUI() {
+  const on = document.getElementById('htmlMode').checked;
+  const textarea = document.getElementById('body');
+  const hint = document.getElementById('bodyModeHint');
+  if (on) {
+    textarea.style.fontFamily = "'Courier New', monospace";
+    textarea.style.fontSize = '13px';
+    textarea.placeholder = 'Paste your complete HTML email here — this replaces the template entirely.\n\nUse {{name}} and {{unsubscribe}} as placeholders.';
+    hint.innerHTML = '<strong>HTML mode is ON</strong> — your template is bypassed. What you type here becomes the entire email exactly as written.';
+  } else {
+    textarea.style.fontFamily = '';
+    textarea.style.fontSize = '';
+    textarea.placeholder = 'Dear {{name}},\n\nPlease find the attached document.\n\nKind regards';
+    hint.innerHTML = 'Use <strong>{{name}}</strong> to personalise. Your message is automatically placed inside your chosen template.';
+  }
+}
+
 async function openPreviewModal() {
   const subject = document.getElementById('subject').value.trim();
   const body    = document.getElementById('body').value.trim();
@@ -976,6 +995,8 @@ function initApp() {
   document.getElementById('subject').addEventListener('input', queueDraft);
   document.getElementById('body').addEventListener('input', function () { growTextarea(this); queueDraft(); });
   document.getElementById('btnPreviewEmail').addEventListener('click', openPreviewModal);
+  document.getElementById('htmlMode').addEventListener('change', updateHtmlModeUI);
+  updateHtmlModeUI(); // set correct initial state
   document.getElementById('btnPreview').addEventListener('click', doPreviewRecipients);
   document.getElementById('btnTest').addEventListener('click', doTest);
   document.getElementById('btnSend').addEventListener('click', doSend);
