@@ -815,6 +815,7 @@ function buildSendParams(testMode) {
     subject, body,
     htmlMode,
     folderIds: activeFolderIds(),
+    fromAddress: document.getElementById('sendFromAddress').value,
     senderName: document.getElementById('senderName').value.trim(),
     labelName: document.getElementById('labelName').value.trim(),
     skipSent: document.getElementById('skipSent').checked,
@@ -969,6 +970,24 @@ async function saveSignature() {
   } catch (e) { setHTML('sigResult', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
+// ── SEND FROM (Gmail aliases) ─────────────────────────────────
+
+async function loadSendAsAliases() {
+  const sel = document.getElementById('sendFromAddress');
+  try {
+    const r = await apiCall('getSendAsAliases');
+    if (!r.ok || !r.list || !r.list.length) {
+      sel.innerHTML = '<option value="">Default</option>';
+      return;
+    }
+    sel.innerHTML = r.list.map(a =>
+      `<option value="${esc(a)}">${esc(a)}${a === r.primary ? ' (primary)' : ''}</option>`
+    ).join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Default</option>';
+  }
+}
+
 // ── NOTIFY EMAIL ──────────────────────────────────────────────
 
 async function loadNotifyEmail() {
@@ -1078,6 +1097,7 @@ function initApp() {
   loadSignature();
   loadNotifyEmail();
   loadAddressBookStatus();
+  loadSendAsAliases();
   renderAdhoc();
   initGoogleSignIn();
   checkGoogleStatus();

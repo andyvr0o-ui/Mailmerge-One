@@ -258,7 +258,12 @@ Kind regards"></textarea>
 
     <div class="card">
       <div class="card-title">Sender Options</div>
-      <label class="field-label" style="margin-top:0">Sender Name</label>
+      <label class="field-label" style="margin-top:0">Send From</label>
+      <select id="sendFromAddress">
+        <option value="">Loading…</option>
+      </select>
+      <p class="hint" style="margin-top:4px">Only addresses already set up as "Send mail as" in your Gmail settings will appear here.</p>
+      <label class="field-label">Sender Name</label>
       <input type="text" id="senderName" placeholder="e.g. Jane Doe">
       <label class="field-label">Move sent emails to Gmail label</label>
       <input type="text" id="labelName" value="Mail Merge Sent">
