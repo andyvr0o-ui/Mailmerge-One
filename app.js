@@ -976,15 +976,24 @@ async function loadSendAsAliases() {
   const sel = document.getElementById('sendFromAddress');
   try {
     const r = await apiCall('getSendAsAliases');
-    if (!r.ok || !r.list || !r.list.length) {
+    if (!r.ok) {
+      sel.innerHTML = `<option value="">Default</option>`;
+      console.error('getSendAsAliases failed:', r.error);
+      setHTML('sendFromDebug', ib('info-red', '❌ ' + esc(r.error)));
+      return;
+    }
+    if (!r.list || !r.list.length) {
       sel.innerHTML = '<option value="">Default</option>';
+      setHTML('sendFromDebug', ib('info-yellow', 'No aliases returned — Gmail reported an empty list.'));
       return;
     }
     sel.innerHTML = r.list.map(a =>
       `<option value="${esc(a)}">${esc(a)}${a === r.primary ? ' (primary)' : ''}</option>`
     ).join('');
+    setHTML('sendFromDebug', '');
   } catch (e) {
     sel.innerHTML = '<option value="">Default</option>';
+    setHTML('sendFromDebug', ib('info-red', '❌ ' + esc(e.message)));
   }
 }
 
@@ -1109,6 +1118,10 @@ document.addEventListener('DOMContentLoaded', () => {
   checkSetup();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // Force an immediate check for a newer sw.js every time the app
+      // opens, bypassing the browser's normal ~24-hour update throttle.
+      reg.update();
+    }).catch(() => {});
   }
 });
