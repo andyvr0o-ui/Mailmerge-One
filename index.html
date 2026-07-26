@@ -75,11 +75,15 @@
           <span id="htmlModeLabelOn" style="color:var(--muted)">Custom HTML</span>
         </div>
       </div>
-      <textarea id="body" rows="6" placeholder="Dear {{name}},
+      <div class="body-editor" id="bodyEditor">
+        <button class="fullscreen-close" id="btnBodyExit">✕ Collapse</button>
+        <button class="body-expand-btn" id="btnBodyExpand">⛶</button>
+        <textarea id="body" placeholder="Dear {{name}},
 
 Please find the attached document.
 
 Kind regards"></textarea>
+      </div>
       <div class="draft-indicator" id="draftIndicator"></div>
       <p class="hint" id="bodyModeHint">Use <strong>{{name}}</strong> to personalise. Your message is automatically placed inside your chosen template.</p>
       <button class="btn btn-secondary" id="btnPreviewEmail">👁️ Preview Email</button>

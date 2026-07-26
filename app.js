@@ -204,13 +204,9 @@ function loadDraft() {
     if (!raw) return;
     const d = JSON.parse(raw);
     if (d.s) document.getElementById('subject').value = d.s;
-    if (d.b) { document.getElementById('body').value = d.b; growTextarea(document.getElementById('body')); }
+    if (d.b) document.getElementById('body').value = d.b;
     if (d.s || d.b) document.getElementById('draftIndicator').textContent = '💾 Restored ' + (d.t || '');
   } catch (e) {}
-}
-function growTextarea(el) {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
 }
 
 // ── SHEETS ────────────────────────────────────────────────────
@@ -821,7 +817,6 @@ async function importEmail(messageId) {
     document.getElementById('body').value = r.html;
     document.getElementById('htmlMode').checked = true;
     updateHtmlModeUI();
-    growTextarea(document.getElementById('body'));
     queueDraft();
     closeLabeledEmailsModal();
     switchTab('compose');
@@ -990,6 +985,14 @@ async function doResetStatuses() {
 
 // ── PREVIEW MODAL ─────────────────────────────────────────────
 
+function toggleBodyFullscreen() {
+  const editor = document.getElementById('bodyEditor');
+  editor.classList.toggle('fullscreen');
+  const isFs = editor.classList.contains('fullscreen');
+  document.body.style.overflow = isFs ? 'hidden' : '';
+  if (isFs) document.getElementById('body').focus();
+}
+
 function updateHtmlModeUI() {
   const on = document.getElementById('htmlMode').checked;
   const textarea = document.getElementById('body');
@@ -1119,8 +1122,10 @@ function initApp() {
 
   // Compose
   document.getElementById('subject').addEventListener('input', queueDraft);
-  document.getElementById('body').addEventListener('input', function () { growTextarea(this); queueDraft(); });
+  document.getElementById('body').addEventListener('input', queueDraft);
   document.getElementById('btnPreviewEmail').addEventListener('click', openPreviewModal);
+  document.getElementById('btnBodyExpand').addEventListener('click', toggleBodyFullscreen);
+  document.getElementById('btnBodyExit').addEventListener('click', toggleBodyFullscreen);
   document.getElementById('htmlMode').addEventListener('change', updateHtmlModeUI);
   updateHtmlModeUI(); // set correct initial state
   document.getElementById('btnPreview').addEventListener('click', doPreviewRecipients);
