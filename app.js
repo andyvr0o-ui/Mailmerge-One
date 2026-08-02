@@ -26,7 +26,7 @@ async function apiCall(action, payload = {}) {
 }
 
 // ── GOOGLE SIGN-IN (Phase 1) ──────────────────────────────────
-const GOOGLE_CLIENT_ID = '849890350871-b25i2k3iifju2rev2gnemf7t9o6972l3.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '849890350871-k7snt2bp3foj63sjenjueu5ekia6q7st.apps.googleusercontent.com';
 const LS_GOOGLE_EMAIL  = 'mm_google_email';
 const GOOGLE_SCOPES    = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
 
