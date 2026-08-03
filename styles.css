@@ -379,3 +379,9 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 }
 .theme-option.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .theme-option .icon { display: block; font-size: 20px; margin-bottom: 4px; }
+
+/* Send From radio options */
+.sendfrom-options { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.radio-row { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 14px; }
+.radio-row input[type="radio"] { width: 16px; height: 16px; margin: 0; cursor: pointer; flex-shrink: 0; }
+.sendfrom-email { color: var(--muted); }

@@ -35,7 +35,7 @@ const LS_GOOGLE_EMAIL  = 'mm_google_email';
 function currentAccountToken() {
   return localStorage.getItem(LS_GOOGLE_EMAIL) || '';
 }
-const GOOGLE_SCOPES    = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
+const GOOGLE_SCOPES    = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
 let googleCodeClient = null;
 
@@ -82,7 +82,7 @@ function refreshAllUserData() {
   loadSignature();
   loadNotifyEmail();
   loadAddressBookStatus();
-  loadSendAsAliases();
+  refreshSendFromDefault();
   loadImportLabel();
 }
 
@@ -1075,7 +1075,7 @@ function buildSendParams(testMode) {
     subject, body,
     htmlMode,
     folderIds: activeFolderIds(),
-    fromAddress: document.getElementById('sendFromAddress').value,
+    fromAddress: getFromAddress(),
     senderName: document.getElementById('senderName').value.trim(),
     labelName: document.getElementById('labelName').value.trim(),
     skipSent: document.getElementById('skipSent').checked,
@@ -1240,34 +1240,48 @@ async function saveSignature() {
   } catch (e) { setHTML('sigResult', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
-// ── SEND FROM (Gmail aliases) ─────────────────────────────────
+// ── SEND FROM (Default account address or a verified alias) ────
+// No Gmail settings scope needed: we don't fetch the alias list — the user
+// picks "Default" (their account address) or types a verified alias, and we
+// set it as the From header (gmail.send already permits verified aliases).
 
-async function loadSendAsAliases() {
-  const expectedAccount = currentAccountToken();
-  const sel = document.getElementById('sendFromAddress');
-  try {
-    const r = await apiCall('getSendAsAliases');
-    if (currentAccountToken() !== expectedAccount) return; // account switched mid-request — discard
-    if (!r.ok) {
-      sel.innerHTML = `<option value="">Default</option>`;
-      console.error('getSendAsAliases failed:', r.error);
-      setHTML('sendFromDebug', ib('info-red', '❌ ' + esc(r.error)));
-      return;
-    }
-    if (!r.list || !r.list.length) {
-      sel.innerHTML = '<option value="">Default</option>';
-      setHTML('sendFromDebug', ib('info-yellow', 'No aliases returned — Gmail reported an empty list.'));
-      return;
-    }
-    sel.innerHTML = r.list.map(a =>
-      `<option value="${esc(a)}">${esc(a)}${a === r.primary ? ' (primary)' : ''}</option>`
-    ).join('');
-    setHTML('sendFromDebug', '');
-  } catch (e) {
-    if (currentAccountToken() !== expectedAccount) return;
-    sel.innerHTML = '<option value="">Default</option>';
-    setHTML('sendFromDebug', ib('info-red', '❌ ' + esc(e.message)));
+function getFromAddress() {
+  const mode = document.querySelector('input[name="sendFromMode"]:checked');
+  if (mode && mode.value === 'alias') {
+    return document.getElementById('sendFromAliasInput').value.trim();
   }
+  return ''; // Default → backend uses the account's primary address
+}
+
+function refreshSendFromDefault() {
+  const email = localStorage.getItem(LS_GOOGLE_EMAIL) || '';
+  const lbl = document.getElementById('sendFromDefaultEmail');
+  if (lbl && email) lbl.textContent = email;
+}
+
+function initSendFrom() {
+  refreshSendFromDefault();
+  const aliasInput = document.getElementById('sendFromAliasInput');
+  if (!aliasInput) return;
+
+  // Restore the saved choice
+  const savedMode  = localStorage.getItem('mm_sendfrom_mode')  || 'default';
+  const savedAlias = localStorage.getItem('mm_sendfrom_alias') || '';
+  aliasInput.value = savedAlias;
+  const useAlias = savedMode === 'alias';
+  document.getElementById(useAlias ? 'sendFromAlias' : 'sendFromDefault').checked = true;
+  aliasInput.style.display = useAlias ? 'block' : 'none';
+
+  document.querySelectorAll('input[name="sendFromMode"]').forEach(r =>
+    r.addEventListener('change', () => {
+      const alias = document.getElementById('sendFromAlias').checked;
+      aliasInput.style.display = alias ? 'block' : 'none';
+      localStorage.setItem('mm_sendfrom_mode', alias ? 'alias' : 'default');
+    })
+  );
+  aliasInput.addEventListener('input', () =>
+    localStorage.setItem('mm_sendfrom_alias', aliasInput.value.trim())
+  );
 }
 
 // ── NOTIFY EMAIL ──────────────────────────────────────────────
@@ -1399,7 +1413,7 @@ function initApp() {
   loadSignature();
   loadNotifyEmail();
   loadAddressBookStatus();
-  loadSendAsAliases();
+  initSendFrom();
   loadImportLabel();
   renderAdhoc();
   initGoogleSignIn();
