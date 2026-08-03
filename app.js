@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbyFN8j6qdk_9PKOCrnZqUYhvJsEYxBRvN9DjQeuDYiknQPCJqM90HukbM7Z6cCzfb-YNA/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbyFHTMHAuK76DqgfYbaCqZuDwHBNMFwNlMgM3IxVYrn5nZfevCuWWOTxbm2FyYlKbql/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
