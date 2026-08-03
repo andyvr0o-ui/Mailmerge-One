@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbyFHTMHAuK76DqgfYbaCqZuDwHBNMFwNlMgM3IxVYrn5nZfevCuWWOTxbm2FyYlKbql/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbwXrZ0C9ZYyOMlmPMpT9ibqjZ4cRA0BGugmOd6sBDQ14Ab8Qu9WmciP676yQWj3_ZbL4g/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
@@ -665,6 +665,133 @@ async function addRecipient() {
   } catch (e) { setHTML('addRecipientResult', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
+// ── SHEET PICKER (shared: main sheets + address book) ──────────
+let sheetPickerMode = 'main'; // 'main' or 'addressbook'
+
+async function openSheetPickerModal(mode) {
+  sheetPickerMode = mode;
+  document.getElementById('sheetPickerModal').classList.add('open');
+  setHTML('sheetPickerList', sp() + 'Loading…');
+  try {
+    const r = await apiCall('listMySheets');
+    if (!r.ok) { setHTML('sheetPickerList', ib('info-red', '❌ ' + esc(r.error))); return; }
+    if (!r.list.length) {
+      setHTML('sheetPickerList', '<p class="hint">No sheets created through this app yet. Use "Create New Sheet" first, or paste an existing sheet\'s URL below instead.</p>');
+      return;
+    }
+    renderSheetPickerList(r.list);
+  } catch (e) { setHTML('sheetPickerList', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+function renderSheetPickerList(list) {
+  let h = '';
+  list.forEach(s => {
+    const created = s.createdTime ? new Date(s.createdTime).toLocaleDateString() : '';
+    h += `<div class="rc-row" style="cursor:pointer" data-id="${esc(s.id)}" data-name="${esc(s.name)}">
+      <div style="flex:1;min-width:0">
+        <div class="rc-name">${esc(s.name)}</div>
+        <div class="hint" style="margin-top:2px">Created ${esc(created)}</div>
+      </div>
+    </div>`;
+  });
+  setHTML('sheetPickerList', h);
+  document.querySelectorAll('#sheetPickerList .rc-row').forEach(row =>
+    row.addEventListener('click', () => selectPickedSheet(row.dataset.id, row.dataset.name))
+  );
+}
+
+function closeSheetPickerModal() {
+  document.getElementById('sheetPickerModal').classList.remove('open');
+}
+
+async function selectPickedSheet(id, name) {
+  setHTML('sheetPickerList', sp() + 'Linking…');
+  try {
+    if (sheetPickerMode === 'addressbook') {
+      const r = await apiCall('linkAddressBookSheet', { id, name });
+      closeSheetPickerModal();
+      if (!r.ok) { setHTML('abLinkResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+      setHTML('abLinkResult', ib('info-green', '✅ Linked: ' + esc(r.name)));
+      loadAddressBookStatus();
+    } else {
+      const r = await apiCall('addSheet', { id, name });
+      closeSheetPickerModal();
+      if (!r.ok) { setHTML('linkSheetResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+      setHTML('linkSheetResult', ib('info-green', '✅ Linked: ' + esc(r.title)));
+      renderSheets(r.list);
+    }
+  } catch (e) {
+    closeSheetPickerModal();
+    setHTML(sheetPickerMode === 'addressbook' ? 'abLinkResult' : 'linkSheetResult', ib('info-red', '❌ ' + esc(e.message)));
+  }
+}
+
+// ── FOLDER PICKER ────────────────────────────────────────────────
+
+async function openFolderPickerModal() {
+  document.getElementById('folderPickerModal').classList.add('open');
+  setHTML('folderPickerList', sp() + 'Loading…');
+  try {
+    const r = await apiCall('listMyFolders');
+    if (!r.ok) { setHTML('folderPickerList', ib('info-red', '❌ ' + esc(r.error))); return; }
+    if (!r.list.length) {
+      setHTML('folderPickerList', '<p class="hint">No folders found in your Drive. Create one below.</p>');
+      return;
+    }
+    renderFolderPickerList(r.list);
+  } catch (e) { setHTML('folderPickerList', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+function renderFolderPickerList(list) {
+  let h = '';
+  list.forEach(f => {
+    h += `<div class="rc-row" style="cursor:pointer" data-id="${esc(f.id)}" data-name="${esc(f.name)}">
+      <div class="rc-name">📁 ${esc(f.name)}</div>
+    </div>`;
+  });
+  setHTML('folderPickerList', h);
+  document.querySelectorAll('#folderPickerList .rc-row').forEach(row =>
+    row.addEventListener('click', () => selectPickedFolder(row.dataset.id, row.dataset.name))
+  );
+}
+
+function closeFolderPickerModal() {
+  document.getElementById('folderPickerModal').classList.remove('open');
+}
+
+async function selectPickedFolder(id, name) {
+  setHTML('folderPickerList', sp() + 'Adding…');
+  try {
+    const r = await apiCall('addFolder', { id, name });
+    closeFolderPickerModal();
+    if (!r.ok) { setHTML('addFolderResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    setHTML('addFolderResult', ib('info-green', '✅ Added: ' + esc(r.folderName)));
+    renderFolders(r.list);
+  } catch (e) {
+    closeFolderPickerModal();
+    setHTML('addFolderResult', ib('info-red', '❌ ' + esc(e.message)));
+  }
+}
+
+async function createFolderFromPicker() {
+  const name = document.getElementById('folderPickerNewName').value.trim();
+  setHTML('folderPickerCreateResult', '');
+  if (!name) { setHTML('folderPickerCreateResult', ib('info-red', 'Enter a folder name.')); return; }
+  setHTML('folderPickerCreateResult', sp() + 'Creating…');
+  try {
+    const created = await apiCall('createFolderQuick', { name });
+    if (!created.ok) { setHTML('folderPickerCreateResult', ib('info-red', '❌ ' + esc(created.error))); return; }
+    const r = await apiCall('addFolder', { id: created.id, name: created.name });
+    document.getElementById('folderPickerNewName').value = '';
+    closeFolderPickerModal();
+    if (!r.ok) { setHTML('addFolderResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    setHTML('addFolderResult', ib('info-green', '✅ Created and added: ' + esc(r.folderName)));
+    renderFolders(r.list);
+  } catch (e) {
+    setHTML('folderPickerCreateResult', ib('info-red', '❌ ' + esc(e.message)));
+  }
+}
+
 // ── ADDRESS BOOK ───────────────────────────────────────────────
 let addressBookSheetId = '';
 
@@ -1232,15 +1359,24 @@ function initApp() {
 
   // Attach
   document.getElementById('btnAddFolder').addEventListener('click', addFolder);
+  document.getElementById('btnBrowseFolders').addEventListener('click', openFolderPickerModal);
+  document.getElementById('btnFolderPickerClose').addEventListener('click', closeFolderPickerModal);
+  document.getElementById('btnFolderPickerCreate').addEventListener('click', createFolderFromPicker);
+  document.getElementById('folderPickerModal').addEventListener('click', function (e) { if (e.target === this) closeFolderPickerModal(); });
 
   // Contacts
   document.getElementById('btnLinkSheet').addEventListener('click', linkExistingSheet);
   document.getElementById('btnCreateSheet').addEventListener('click', createNewSheet);
+  document.getElementById('btnBrowseSheetsMain').addEventListener('click', () => openSheetPickerModal('main'));
   document.getElementById('csvFile').addEventListener('change', function () { handleCSVImport(this); });
   document.getElementById('btnAddRecipient').addEventListener('click', addRecipient);
   document.getElementById('btnLoadRecipients').addEventListener('click', loadRecipientList);
   document.getElementById('btnCount').addEventListener('click', doCount);
   document.getElementById('btnResetStatuses').addEventListener('click', doResetStatuses);
+
+  // Shared sheet picker modal
+  document.getElementById('btnSheetPickerClose').addEventListener('click', closeSheetPickerModal);
+  document.getElementById('sheetPickerModal').addEventListener('click', function (e) { if (e.target === this) closeSheetPickerModal(); });
 
   // Settings
   document.getElementById('btnSigSave').addEventListener('click', saveSignature);
@@ -1249,6 +1385,7 @@ function initApp() {
   document.getElementById('btnGoogleDisconnect').addEventListener('click', disconnectGoogle);
   document.getElementById('btnAbLink').addEventListener('click', linkAddressBook);
   document.getElementById('btnAbCreate').addEventListener('click', createAddressBook);
+  document.getElementById('btnBrowseSheetsAB').addEventListener('click', () => openSheetPickerModal('addressbook'));
   document.getElementById('btnSaveImportLabel').addEventListener('click', saveImportLabel);
   document.getElementById('themeOptionDark').addEventListener('click', () => saveTheme('dark'));
   document.getElementById('themeOptionLight').addEventListener('click', () => saveTheme('light'));

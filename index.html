@@ -162,8 +162,9 @@ Kind regards"></textarea>
       <div class="card-title">PDF Folders</div>
       <p class="hint" style="margin-bottom:12px">Tick the folders to include PDFs from. You can select multiple.</p>
       <div id="folderList"><span class="spinner"></span> Loading…</div>
+      <button class="btn btn-primary" id="btnBrowseFolders" style="margin-top:10px">📁 Browse My Drive Folders</button>
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-        <label class="field-label" style="margin-top:0">Paste Google Drive Folder URL or ID</label>
+        <label class="field-label" style="margin-top:0">Or paste a Google Drive Folder URL or ID</label>
         <input type="text" id="newFolderUrl" placeholder="https://drive.google.com/drive/folders/…">
         <label class="field-label">Friendly name</label>
         <input type="text" id="newFolderName" placeholder="e.g. May Newsletter PDFs">
@@ -179,8 +180,9 @@ Kind regards"></textarea>
       <div class="card-title">Active Contact Sheet</div>
       <p class="hint" style="margin-bottom:12px">Tick the sheet to use, link an existing one, or create a new one.</p>
       <div id="sheetList"><span class="spinner"></span> Loading…</div>
+      <button class="btn btn-primary" id="btnBrowseSheetsMain" style="margin-top:10px">📋 Browse My Mail Merge Sheets</button>
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-        <label class="field-label" style="margin-top:0">Link existing sheet — paste URL</label>
+        <label class="field-label" style="margin-top:0">Or link any sheet by pasting its URL</label>
         <input type="text" id="newSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
         <label class="field-label">Friendly name</label>
         <input type="text" id="newSheetName" placeholder="e.g. Newsletter List">
@@ -325,8 +327,9 @@ Kind regards"></textarea>
       <div class="card-title">Address Book</div>
       <p class="hint" style="margin-bottom:10px">A separate sheet just for one-off contacts you occasionally email — pick from it via checkboxes when composing, without a mailing list.</p>
       <div id="addressBookStatus" class="hint">Loading…</div>
+      <button class="btn btn-primary" id="btnBrowseSheetsAB" style="margin-top:10px">📋 Browse My Mail Merge Sheets</button>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-        <label class="field-label" style="margin-top:0">Link existing sheet — paste URL</label>
+        <label class="field-label" style="margin-top:0">Or link any sheet by pasting its URL</label>
         <input type="text" id="abNewUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
         <label class="field-label">Friendly name</label>
         <input type="text" id="abNewName" placeholder="e.g. My Address Book">
@@ -352,6 +355,36 @@ Kind regards"></textarea>
   </div>
 
 </div><!-- end #app -->
+
+<!-- ══ SHEET PICKER MODAL (shared: main sheets + address book) ══ -->
+<div class="modal-overlay" id="sheetPickerModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>📋 My Mail Merge Sheets</span>
+      <button id="btnSheetPickerClose">✕</button>
+    </div>
+    <div id="sheetPickerList" style="max-height:450px;overflow-y:auto;padding:14px;background:var(--surface)"></div>
+  </div>
+</div>
+
+<!-- ══ FOLDER PICKER MODAL ══════════════════════════════════════ -->
+<div class="modal-overlay" id="folderPickerModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>📁 My Drive Folders</span>
+      <button id="btnFolderPickerClose">✕</button>
+    </div>
+    <div id="folderPickerList" style="max-height:400px;overflow-y:auto;padding:14px;background:var(--surface)"></div>
+    <div style="padding:14px;background:var(--surface);border-top:1px solid var(--border)">
+      <label class="field-label" style="margin-top:0;color:var(--muted)">Create a new folder</label>
+      <div class="row">
+        <input type="text" id="folderPickerNewName" placeholder="e.g. Newsletter PDFs">
+        <button class="btn-sm btn-primary" id="btnFolderPickerCreate" style="border-radius:8px;white-space:nowrap">+ Create</button>
+      </div>
+      <div id="folderPickerCreateResult"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ══ LABELED EMAILS PICKER MODAL ═════════════════════════════ -->
 <div class="modal-overlay" id="labeledEmailsModal">
