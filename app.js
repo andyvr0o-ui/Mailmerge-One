@@ -28,6 +28,13 @@ async function apiCall(action, payload = {}) {
 // ── GOOGLE SIGN-IN (Phase 1) ──────────────────────────────────
 const GOOGLE_CLIENT_ID = '849890350871-k7snt2bp3foj63sjenjueu5ekia6q7st.apps.googleusercontent.com';
 const LS_GOOGLE_EMAIL  = 'mm_google_email';
+
+// Used by every account-dependent load function to detect and discard
+// stale responses — e.g. a request that started before you switched
+// accounts, but resolves after a newer request for the new account.
+function currentAccountToken() {
+  return localStorage.getItem(LS_GOOGLE_EMAIL) || '';
+}
 const GOOGLE_SCOPES    = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
 
 let googleCodeClient = null;
@@ -53,6 +60,7 @@ function initGoogleSignIn() {
           localStorage.setItem(LS_GOOGLE_EMAIL, r.email);
           updateGoogleStatus(true, r.email);
           setHTML('googleResult', ib('info-green', '✅ Connected as ' + esc(r.email)));
+          refreshAllUserData();
         } else {
           setHTML('googleResult', ib('info-red', '❌ ' + esc(r.error)));
         }
@@ -61,6 +69,21 @@ function initGoogleSignIn() {
       }
     }
   });
+}
+
+// Re-loads every account-specific section of the app. Needed whenever
+// the signed-in Google account changes within the same session (e.g.
+// disconnect then connect a different account) — without this, every
+// panel would keep showing whichever account's data loaded first.
+function refreshAllUserData() {
+  loadSheets();
+  loadFolders();
+  loadTemplates();
+  loadSignature();
+  loadNotifyEmail();
+  loadAddressBookStatus();
+  loadSendAsAliases();
+  loadImportLabel();
 }
 
 function connectGoogle() {
@@ -100,6 +123,7 @@ async function disconnectGoogle() {
   localStorage.removeItem(LS_GOOGLE_EMAIL);
   updateGoogleStatus(false);
   setHTML('googleResult', ib('info-blue', 'Disconnected.'));
+  refreshAllUserData();
 }
 
 function b64dec(s) {
@@ -212,12 +236,17 @@ function loadDraft() {
 // ── SHEETS ────────────────────────────────────────────────────
 
 async function loadSheets() {
+  const expectedAccount = currentAccountToken();
   setHTML('sheetList', sp() + 'Loading…');
   try {
     const r = await apiCall('getSheets');
+    if (currentAccountToken() !== expectedAccount) return; // account changed mid-request
     if (!r.ok) { setHTML('sheetList', ib('info-red', '❌ ' + esc(r.error))); return; }
     renderSheets(r.list);
-  } catch (e) { setHTML('sheetList', ib('info-red', '❌ ' + esc(e.message))); }
+  } catch (e) {
+    if (currentAccountToken() !== expectedAccount) return;
+    setHTML('sheetList', ib('info-red', '❌ ' + esc(e.message)));
+  }
 }
 
 function renderSheets(list) {
@@ -309,12 +338,17 @@ async function createNewSheet() {
 // ── FOLDERS ───────────────────────────────────────────────────
 
 async function loadFolders() {
+  const expectedAccount = currentAccountToken();
   setHTML('folderList', sp() + 'Loading…');
   try {
     const r = await apiCall('getFolders');
+    if (currentAccountToken() !== expectedAccount) return;
     if (!r.ok) { setHTML('folderList', ib('info-red', '❌ ' + esc(r.error))); return; }
     renderFolders(r.list);
-  } catch (e) { setHTML('folderList', ib('info-red', '❌ ' + esc(e.message))); }
+  } catch (e) {
+    if (currentAccountToken() !== expectedAccount) return;
+    setHTML('folderList', ib('info-red', '❌ ' + esc(e.message)));
+  }
 }
 
 function renderFolders(list) {
@@ -380,12 +414,17 @@ async function addFolder() {
 // ── TEMPLATES ─────────────────────────────────────────────────
 
 async function loadTemplates() {
+  const expectedAccount = currentAccountToken();
   setHTML('templateGrid', sp() + 'Loading…');
   try {
     const r = await apiCall('getAllTemplates');
+    if (currentAccountToken() !== expectedAccount) return;
     if (!r.ok) { setHTML('templateGrid', ib('info-red', '❌ ' + esc(r.error))); return; }
     renderTemplates(r.list, r.activeId);
-  } catch (e) { setHTML('templateGrid', ib('info-red', '❌ ' + esc(e.message))); }
+  } catch (e) {
+    if (currentAccountToken() !== expectedAccount) return;
+    setHTML('templateGrid', ib('info-red', '❌ ' + esc(e.message)));
+  }
 }
 
 function renderTemplates(list, activeId) {
@@ -630,9 +669,11 @@ async function addRecipient() {
 let addressBookSheetId = '';
 
 async function loadAddressBookStatus() {
+  const expectedAccount = currentAccountToken();
   setHTML('addressBookStatus', sp() + 'Loading…');
   try {
     const r = await apiCall('getAddressBookSheet');
+    if (currentAccountToken() !== expectedAccount) return;
     if (r.ok && r.sheet) {
       addressBookSheetId = r.sheet.id;
       setHTML('addressBookStatus', ib('info-green', '📖 Linked: ' + esc(r.sheet.name)));
@@ -640,7 +681,10 @@ async function loadAddressBookStatus() {
       addressBookSheetId = '';
       setHTML('addressBookStatus', '<p class="hint">No address book set up yet. Link or create one below.</p>');
     }
-  } catch (e) { setHTML('addressBookStatus', ib('info-red', '❌ ' + esc(e.message))); }
+  } catch (e) {
+    if (currentAccountToken() !== expectedAccount) return;
+    setHTML('addressBookStatus', ib('info-red', '❌ ' + esc(e.message)));
+  }
 }
 
 async function linkAddressBook() {
@@ -753,8 +797,10 @@ async function quickAddToAddressBook() {
 // ── IMPORT FROM GMAIL LABEL ────────────────────────────────────
 
 async function loadImportLabel() {
+  const expectedAccount = currentAccountToken();
   try {
     const r = await apiCall('getImportLabel');
+    if (currentAccountToken() !== expectedAccount) return;
     if (r.ok) document.getElementById('importLabelName').value = r.name;
   } catch (e) {}
 }
@@ -1041,8 +1087,10 @@ function closePreviewModal() { document.getElementById('previewModal').classList
 // ── SIGNATURE ─────────────────────────────────────────────────
 
 async function loadSignature() {
+  const expectedAccount = currentAccountToken();
   try {
     const r = await apiCall('getSignature');
+    if (currentAccountToken() !== expectedAccount) return;
     if (!r.ok) return;
     const s = r.sig;
     document.getElementById('sigName').value    = s.name    || '';
@@ -1068,9 +1116,11 @@ async function saveSignature() {
 // ── SEND FROM (Gmail aliases) ─────────────────────────────────
 
 async function loadSendAsAliases() {
+  const expectedAccount = currentAccountToken();
   const sel = document.getElementById('sendFromAddress');
   try {
     const r = await apiCall('getSendAsAliases');
+    if (currentAccountToken() !== expectedAccount) return; // account switched mid-request — discard
     if (!r.ok) {
       sel.innerHTML = `<option value="">Default</option>`;
       console.error('getSendAsAliases failed:', r.error);
@@ -1087,6 +1137,7 @@ async function loadSendAsAliases() {
     ).join('');
     setHTML('sendFromDebug', '');
   } catch (e) {
+    if (currentAccountToken() !== expectedAccount) return;
     sel.innerHTML = '<option value="">Default</option>';
     setHTML('sendFromDebug', ib('info-red', '❌ ' + esc(e.message)));
   }
@@ -1095,8 +1146,10 @@ async function loadSendAsAliases() {
 // ── NOTIFY EMAIL ──────────────────────────────────────────────
 
 async function loadNotifyEmail() {
+  const expectedAccount = currentAccountToken();
   try {
     const r = await apiCall('getNotifyEmail');
+    if (currentAccountToken() !== expectedAccount) return;
     if (r.ok && r.email) document.getElementById('notifyEmail').value = r.email;
   } catch (e) {}
 }
