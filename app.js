@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbycmTNb_apki7j_x9F6VzNNgKB8BD9pWEt35z09yst3EOAd4yTeEHsVGHwztxPoQ-W7xQ/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbyFN8j6qdk_9PKOCrnZqUYhvJsEYxBRvN9DjQeuDYiknQPCJqM90HukbM7Z6cCzfb-YNA/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
@@ -35,7 +35,7 @@ const LS_GOOGLE_EMAIL  = 'mm_google_email';
 function currentAccountToken() {
   return localStorage.getItem(LS_GOOGLE_EMAIL) || '';
 }
-const GOOGLE_SCOPES    = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
+const GOOGLE_SCOPES    = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
 let googleCodeClient = null;
 
