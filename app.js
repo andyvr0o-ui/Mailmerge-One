@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbwXrZ0C9ZYyOMlmPMpT9ibqjZ4cRA0BGugmOd6sBDQ14Ab8Qu9WmciP676yQWj3_ZbL4g/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbyczUl3ruLYclX9zt72E1WKxEIxXQFhRIm8AaCIi6m5SHg42Q3evz3ZYo_GzvBXzhtXdw/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
@@ -83,7 +83,6 @@ function refreshAllUserData() {
   loadNotifyEmail();
   loadAddressBookStatus();
   refreshSendFromDefault();
-  loadImportLabel();
 }
 
 function connectGoogle() {
@@ -921,98 +920,6 @@ async function quickAddToAddressBook() {
   } catch (e) { setHTML('abQuickAddResult', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
-// ── IMPORT FROM GMAIL LABEL ────────────────────────────────────
-
-async function loadImportLabel() {
-  const expectedAccount = currentAccountToken();
-  try {
-    const r = await apiCall('getImportLabel');
-    if (currentAccountToken() !== expectedAccount) return;
-    if (r.ok) document.getElementById('importLabelName').value = r.name;
-  } catch (e) {}
-}
-
-async function saveImportLabel() {
-  const name = document.getElementById('importLabelName').value.trim();
-  if (!name) { setHTML('importLabelResult', ib('info-red', 'Enter a label name.')); return; }
-  try {
-    const r = await apiCall('setImportLabel', { name });
-    setHTML('importLabelResult', r.ok ? ib('info-green', '✅ Saved') : ib('info-red', '❌ ' + esc(r.error)));
-  } catch (e) { setHTML('importLabelResult', ib('info-red', '❌ ' + esc(e.message))); }
-}
-
-async function openLabeledEmailsModal() {
-  document.getElementById('labeledEmailsModal').classList.add('open');
-  setHTML('labeledEmailsList', sp() + 'Loading…');
-  try {
-    const r = await apiCall('getLabeledEmails');
-    if (!r.ok) { setHTML('labeledEmailsList', ib('info-red', '❌ ' + esc(r.error))); return; }
-    if (!r.labelExists) {
-      setHTML('labeledEmailsList', `<p class="hint">No Gmail label called "<strong>${esc(r.labelName)}</strong>" exists yet. Create it in Gmail, apply it to an email, then try again. You can change the label name in Settings → Import Source.</p>`);
-      return;
-    }
-    if (!r.list.length) {
-      setHTML('labeledEmailsList', `<p class="hint">No emails currently have the "<strong>${esc(r.labelName)}</strong>" label. Apply it to an email in Gmail, then reopen this.</p>`);
-      return;
-    }
-    renderLabeledEmails(r.list);
-  } catch (e) { setHTML('labeledEmailsList', ib('info-red', '❌ ' + esc(e.message))); }
-}
-
-function renderLabeledEmails(list) {
-  let h = '';
-  list.forEach(m => {
-    h += `<div class="rc-row" style="cursor:pointer" data-message-id="${esc(m.messageId)}">
-      <div style="flex:1;min-width:0">
-        <div class="rc-name">${esc(m.subject || '(no subject)')}</div>
-        <div class="rc-email">${esc(m.from)}</div>
-        <div class="hint" style="margin-top:2px">${esc(m.snippet)}…</div>
-      </div>
-    </div>`;
-  });
-  setHTML('labeledEmailsList', h);
-  document.querySelectorAll('#labeledEmailsList .rc-row').forEach(row =>
-    row.addEventListener('click', () => importEmail(row.dataset.messageId))
-  );
-}
-
-function closeLabeledEmailsModal() {
-  document.getElementById('labeledEmailsModal').classList.remove('open');
-}
-
-async function importEmail(messageId) {
-  setHTML('labeledEmailsList', sp() + 'Importing…');
-  try {
-    const r = await apiCall('getEmailContent', { messageId });
-    if (!r.ok) { setHTML('labeledEmailsList', ib('info-red', '❌ ' + esc(r.error))); return; }
-
-    document.getElementById('subject').value = r.subject;
-    document.getElementById('body').value = r.html;
-    document.getElementById('htmlMode').checked = true;
-    updateHtmlModeUI();
-    queueDraft();
-    closeLabeledEmailsModal();
-    switchTab('compose');
-
-    let msg = '✅ Imported — HTML mode was switched on to preserve the original formatting.';
-    if (r.pdfAttachmentCount > 0) {
-      msg += `<br><button class="btn btn-secondary" id="btnSaveEmailAttachments" data-message-id="${esc(messageId)}" style="margin-top:8px">📎 Save ${r.pdfAttachmentCount} PDF attachment(s) to Drive</button>`;
-    }
-    showComposeAlert('info-green', msg);
-    const attachBtn = document.getElementById('btnSaveEmailAttachments');
-    if (attachBtn) attachBtn.addEventListener('click', () => saveAttachmentsFromEmail(attachBtn.dataset.messageId));
-  } catch (e) { setHTML('labeledEmailsList', ib('info-red', '❌ ' + esc(e.message))); }
-}
-
-async function saveAttachmentsFromEmail(messageId) {
-  showComposeAlert('info-blue', sp() + 'Saving attachments…');
-  try {
-    const r = await apiCall('saveEmailAttachmentsToDrive', { messageId });
-    if (!r.ok) { showComposeAlert('info-red', '❌ ' + esc(r.error)); return; }
-    showComposeAlert('info-green', `✅ Saved ${r.count} PDF(s) to "${esc(r.folderName)}" — it's now active in the Attach tab.`);
-    renderFolders(r.list);
-  } catch (e) { showComposeAlert('info-red', '❌ ' + esc(e.message)); }
-}
 
 // ── CSV IMPORT ────────────────────────────────────────────────
 
@@ -1327,11 +1234,8 @@ function initApp() {
   document.getElementById('btnSend').addEventListener('click', doSend);
   document.getElementById('btnAhAdd').addEventListener('click', addAdhoc);
   document.getElementById('btnOpenAddressBook').addEventListener('click', openAddressBookModal);
-  document.getElementById('btnBrowseLabeledEmails').addEventListener('click', openLabeledEmailsModal);
 
   // Labeled emails modal
-  document.getElementById('btnLabeledEmailsClose').addEventListener('click', closeLabeledEmailsModal);
-  document.getElementById('labeledEmailsModal').addEventListener('click', function (e) { if (e.target === this) closeLabeledEmailsModal(); });
 
   // Address Book modal
   document.getElementById('btnAbModalClose').addEventListener('click', closeAddressBookModal);
@@ -1400,7 +1304,6 @@ function initApp() {
   document.getElementById('btnAbLink').addEventListener('click', linkAddressBook);
   document.getElementById('btnAbCreate').addEventListener('click', createAddressBook);
   document.getElementById('btnBrowseSheetsAB').addEventListener('click', () => openSheetPickerModal('addressbook'));
-  document.getElementById('btnSaveImportLabel').addEventListener('click', saveImportLabel);
   document.getElementById('themeOptionDark').addEventListener('click', () => saveTheme('dark'));
   document.getElementById('themeOptionLight').addEventListener('click', () => saveTheme('light'));
   loadTheme(); // sets the active highlight on the correct theme button
@@ -1414,7 +1317,6 @@ function initApp() {
   loadNotifyEmail();
   loadAddressBookStatus();
   initSendFrom();
-  loadImportLabel();
   renderAdhoc();
   initGoogleSignIn();
   checkGoogleStatus();
