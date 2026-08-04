@@ -267,18 +267,10 @@ Kind regards"></textarea>
     <div class="card">
       <div class="card-title">Sender Options</div>
       <label class="field-label" style="margin-top:0">Send From</label>
-      <div class="sendfrom-options">
-        <label class="radio-row">
-          <input type="radio" name="sendFromMode" value="default" id="sendFromDefault" checked>
-          <span>Default — <span id="sendFromDefaultEmail" class="sendfrom-email">your Gmail address</span></span>
-        </label>
-        <label class="radio-row">
-          <input type="radio" name="sendFromMode" value="alias" id="sendFromAlias">
-          <span>Alias</span>
-        </label>
-      </div>
-      <input type="text" id="sendFromAliasInput" placeholder="verified-alias@yourdomain.com" style="display:none;margin-top:8px">
-      <p class="hint" style="margin-top:4px">The alias must already be verified in your Gmail (Settings → Accounts → “Send mail as”), or the send will fail.</p>
+      <select id="sendFromSelect">
+        <option value="">Default — your Gmail address</option>
+      </select>
+      <p class="hint" style="margin-top:4px">Add verified send-from aliases under Settings → Send-from aliases.</p>
       <label class="field-label">Sender Name</label>
       <input type="text" id="senderName" placeholder="e.g. Jane Doe">
       <label class="field-label">Move sent emails to Gmail label</label>
@@ -345,6 +337,20 @@ Kind regards"></textarea>
       <button class="btn btn-primary" id="btnGoogleConnect">🔐 Connect Google Account</button>
       <button class="btn btn-danger" id="btnGoogleDisconnect" style="display:none">Disconnect</button>
       <div id="googleResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Send-from aliases</div>
+      <p class="hint" style="margin-bottom:10px">Add an address you want to send from. We'll email a code to it to confirm you own that inbox. It must also be set up as a "Send mail as" address in your Gmail for sends to actually go out as it.</p>
+      <input type="text" id="aliasInput" placeholder="you@yourdomain.com" inputmode="email">
+      <button class="btn btn-primary" id="btnSendAliasCode" style="margin-top:8px">Send code</button>
+      <div id="aliasCodeArea" style="display:none;margin-top:12px">
+        <label class="field-label" style="margin-top:0">Enter the code emailed to <strong id="aliasPendingLabel"></strong></label>
+        <input type="text" id="aliasCodeInput" placeholder="6-digit code" inputmode="numeric" maxlength="6">
+        <button class="btn btn-secondary" id="btnVerifyAliasCode" style="margin-top:8px">Verify &amp; add</button>
+      </div>
+      <div id="aliasResult"></div>
+      <div id="aliasList" style="margin-top:12px"></div>
     </div>
 
     <div class="card">

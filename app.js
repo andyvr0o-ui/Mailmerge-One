@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbyczUl3ruLYclX9zt72E1WKxEIxXQFhRIm8AaCIi6m5SHg42Q3evz3ZYo_GzvBXzhtXdw/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbzWtIrUQw5Fs_Qn6VMxni140OWZwZ4O_yKaUPc_WtOlkTVVnoanF8pq95mqB0XPbBfSkA/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
@@ -82,7 +82,7 @@ function refreshAllUserData() {
   loadSignature();
   loadNotifyEmail();
   loadAddressBookStatus();
-  refreshSendFromDefault();
+  loadAliases();
 }
 
 function connectGoogle() {
@@ -1153,42 +1153,83 @@ async function saveSignature() {
 // set it as the From header (gmail.send already permits verified aliases).
 
 function getFromAddress() {
-  const mode = document.querySelector('input[name="sendFromMode"]:checked');
-  if (mode && mode.value === 'alias') {
-    return document.getElementById('sendFromAliasInput').value.trim();
-  }
-  return ''; // Default → backend uses the account's primary address
+  const sel = document.getElementById('sendFromSelect');
+  return sel ? sel.value : '';
 }
 
 function refreshSendFromDefault() {
   const email = localStorage.getItem(LS_GOOGLE_EMAIL) || '';
-  const lbl = document.getElementById('sendFromDefaultEmail');
-  if (lbl && email) lbl.textContent = email;
+  const opt = document.querySelector('#sendFromSelect option[value=""]');
+  if (opt && email) opt.textContent = 'Default — ' + email;
 }
 
-function initSendFrom() {
+// ── SEND-FROM ALIASES (ownership-verified via emailed code) ────
+let _aliasPending = '';
+
+async function loadAliases() {
   refreshSendFromDefault();
-  const aliasInput = document.getElementById('sendFromAliasInput');
-  if (!aliasInput) return;
+  try {
+    const r = await apiCall('getAliases');
+    if (r.ok) renderAliases(r.list || []);
+  } catch (e) {}
+}
 
-  // Restore the saved choice
-  const savedMode  = localStorage.getItem('mm_sendfrom_mode')  || 'default';
-  const savedAlias = localStorage.getItem('mm_sendfrom_alias') || '';
-  aliasInput.value = savedAlias;
-  const useAlias = savedMode === 'alias';
-  document.getElementById(useAlias ? 'sendFromAlias' : 'sendFromDefault').checked = true;
-  aliasInput.style.display = useAlias ? 'block' : 'none';
+function renderAliases(list) {
+  const email = localStorage.getItem(LS_GOOGLE_EMAIL) || 'your Gmail address';
+  const sel = document.getElementById('sendFromSelect');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Default — ' + esc(email) + '</option>'
+      + list.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+    if ([''].concat(list).indexOf(cur) !== -1) sel.value = cur;
+  }
+  const box = document.getElementById('aliasList');
+  if (box) {
+    box.innerHTML = list.length
+      ? list.map(a => `<div class="alias-row"><span>${esc(a)}</span><button class="alias-remove" data-alias="${esc(a)}" title="Remove">✕</button></div>`).join('')
+      : '<p class="hint">No aliases added yet.</p>';
+    box.querySelectorAll('.alias-remove').forEach(b =>
+      b.addEventListener('click', () => removeAlias(b.dataset.alias)));
+  }
+}
 
-  document.querySelectorAll('input[name="sendFromMode"]').forEach(r =>
-    r.addEventListener('change', () => {
-      const alias = document.getElementById('sendFromAlias').checked;
-      aliasInput.style.display = alias ? 'block' : 'none';
-      localStorage.setItem('mm_sendfrom_mode', alias ? 'alias' : 'default');
-    })
-  );
-  aliasInput.addEventListener('input', () =>
-    localStorage.setItem('mm_sendfrom_alias', aliasInput.value.trim())
-  );
+async function sendAliasCode() {
+  const alias = document.getElementById('aliasInput').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(alias)) {
+    setHTML('aliasResult', ib('info-red', "That doesn't look like a valid email address.")); return;
+  }
+  setHTML('aliasResult', sp() + 'Sending code…');
+  try {
+    const r = await apiCall('sendAliasCode', { alias });
+    if (!r.ok) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    _aliasPending = alias;
+    document.getElementById('aliasPendingLabel').textContent = alias;
+    document.getElementById('aliasCodeArea').style.display = 'block';
+    setHTML('aliasResult', ib('info-green', '✅ Code sent to ' + esc(alias) + '. Open that inbox and enter the code below.'));
+  } catch (e) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+async function verifyAliasCode() {
+  if (!_aliasPending) { setHTML('aliasResult', ib('info-red', 'Send a code first.')); return; }
+  const code = document.getElementById('aliasCodeInput').value.trim();
+  setHTML('aliasResult', sp() + 'Verifying…');
+  try {
+    const r = await apiCall('verifyAliasCode', { alias: _aliasPending, code });
+    if (!r.ok) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(r.error))); return; }
+    setHTML('aliasResult', ib('info-green', '🎉 ' + esc(_aliasPending) + ' verified and added! Make sure it\'s also a "Send mail as" address in your Gmail so sends go out as it.'));
+    document.getElementById('aliasInput').value = '';
+    document.getElementById('aliasCodeInput').value = '';
+    document.getElementById('aliasCodeArea').style.display = 'none';
+    _aliasPending = '';
+    renderAliases(r.list || []);
+  } catch (e) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(e.message))); }
+}
+
+async function removeAlias(alias) {
+  try {
+    const r = await apiCall('removeAlias', { alias });
+    if (r.ok) renderAliases(r.list || []);
+  } catch (e) {}
 }
 
 // ── NOTIFY EMAIL ──────────────────────────────────────────────
@@ -1316,7 +1357,9 @@ function initApp() {
   loadSignature();
   loadNotifyEmail();
   loadAddressBookStatus();
-  initSendFrom();
+  loadAliases();
+  var _bSend=document.getElementById('btnSendAliasCode'); if(_bSend) _bSend.addEventListener('click', sendAliasCode);
+  var _bVer=document.getElementById('btnVerifyAliasCode'); if(_bVer) _bVer.addEventListener('click', verifyAliasCode);
   renderAdhoc();
   initGoogleSignIn();
   checkGoogleStatus();
