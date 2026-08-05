@@ -32,7 +32,7 @@
 
   <div class="hdr">
     <a class="donate-btn-sm" href="https://ko-fi.com/avrbuilds" target="_blank" rel="noopener noreferrer">Donate</a>
-    <h1>📧 Mail Merge</h1>
+    <h1><img src="icons/icon-192.png" alt="" class="hdr-icon"> Mail Merge</h1>
     <p id="headerSub">No sheet selected</p>
   </div>
 
@@ -352,6 +352,16 @@ Kind regards"></textarea>
 </div><!-- end #app -->
 
 <!-- ══ SHEET PICKER MODAL (shared: main sheets + address book) ══ -->
+<div class="modal-overlay" id="uiDialog">
+  <div class="modal-box ui-dialog-box">
+    <div class="ui-dialog-msg" id="uiDialogMsg"></div>
+    <div class="ui-dialog-actions">
+      <button class="btn btn-secondary" id="uiDialogCancel">Cancel</button>
+      <button class="btn btn-primary" id="uiDialogOk">OK</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="aliasModal">
   <div class="modal-box">
     <div class="modal-header">

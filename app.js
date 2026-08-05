@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbzUYXU1h7cxeVLSqyYHCqSLmVHQj2eWCkMQ-hoUT_34rxxmyhBkEJ6UcrUUl8VYUk75kg/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbwXrZ0C9ZYyOMlmPMpT9ibqjZ4cRA0BGugmOd6sBDQ14Ab8Qu9WmciP676yQWj3_ZbL4g/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
@@ -86,7 +86,7 @@ function refreshAllUserData() {
 }
 
 function connectGoogle() {
-  if (!googleCodeClient) { alert('Google sign-in is still loading — try again in a moment.'); return; }
+  if (!googleCodeClient) { uiAlert('Google sign-in is still loading — try again in a moment.'); return; }
   googleCodeClient.requestCode();
 }
 
@@ -287,18 +287,18 @@ function renderSheets(list) {
 
 async function selectNoSheet() {
   const r = await apiCall('setNoSheet');
-  if (r.ok) renderSheets(r.list); else alert(r.error);
+  if (r.ok) renderSheets(r.list); else uiAlert(r.error);
 }
 
 async function activateSheet(idx) {
   const r = await apiCall('setActiveSheet', { idx });
-  if (r.ok) renderSheets(r.list); else alert(r.error);
+  if (r.ok) renderSheets(r.list); else uiAlert(r.error);
 }
 
 async function deleteSheet(idx) {
-  if (!confirm('Remove this sheet from the list?')) return;
+  if (!(await uiConfirm('Remove this sheet from the list?'))) return;
   const r = await apiCall('deleteSheet', { idx });
-  if (r.ok) renderSheets(r.list); else alert(r.error);
+  if (r.ok) renderSheets(r.list); else uiAlert(r.error);
 }
 
 async function linkExistingSheet() {
@@ -373,9 +373,9 @@ function renderFolders(list) {
   );
   document.querySelectorAll('#folderList .list-row-delete').forEach(b =>
     b.addEventListener('click', async () => {
-      if (!confirm('Remove this folder?')) return;
+      if (!(await uiConfirm('Remove this folder?'))) return;
       const r = await apiCall('deleteFolder', { idx: parseInt(b.dataset.idx) });
-      if (r.ok) renderFolders(r.list); else alert(r.error);
+      if (r.ok) renderFolders(r.list); else uiAlert(r.error);
     })
   );
 }
@@ -482,9 +482,9 @@ async function editTemplate(id, name) {
 }
 
 async function deleteCustomTemplate(id) {
-  if (!confirm('Delete this custom template?')) return;
+  if (!(await uiConfirm('Delete this custom template?'))) return;
   const r = await apiCall('deleteCustomTemplate', { id });
-  if (r.ok) loadTemplates(); else alert(r.error);
+  if (r.ok) loadTemplates(); else uiAlert(r.error);
 }
 
 async function createCustomTemplate() {
@@ -532,7 +532,7 @@ async function saveTemplate() {
 async function resetTemplateToBuiltin() {
   const id = document.getElementById('templateEditor').dataset.editingId;
   if (!id) { setHTML('templateEditResult', ib('info-red', 'No template selected.')); return; }
-  if (!confirm('Reset this template to its built-in default? Your edits will be lost.')) return;
+  if (!(await uiConfirm('Reset this template to its built-in default? Your edits will be lost.'))) return;
   await apiCall('saveTemplateById', { id, html: '__RESET__' });
   const r2 = await apiCall('getTemplateById', { id });
   if (r2.ok) {
@@ -641,9 +641,9 @@ function renderRecipientList(list) {
   setHTML('recipientList', h);
   document.querySelectorAll('#recipientList .list-row-delete').forEach(b =>
     b.addEventListener('click', async () => {
-      if (!confirm('Remove this recipient?')) return;
+      if (!(await uiConfirm('Remove this recipient?'))) return;
       const r = await apiCall('deleteRecipient', { row: parseInt(b.dataset.row), sheetId: activeSheetId });
-      if (r.ok) renderRecipientList(r.list); else alert(r.error);
+      if (r.ok) renderRecipientList(r.list); else uiAlert(r.error);
     })
   );
 }
@@ -1006,7 +1006,7 @@ async function doTest() {
 async function doSend() {
   const p = buildSendParams(false);
   if (!p) return;
-  if (!confirm('Send to all pending recipients? This cannot be undone.')) return;
+  if (!(await uiConfirm('Send to all pending recipients? This cannot be undone.'))) return;
   document.getElementById('btnSend').disabled = true;
   document.getElementById('progressWrap').style.display = 'block';
   animateProgress();
@@ -1056,7 +1056,7 @@ function showComposeAlert(cls, msg) { setHTML('composeAlert', ib(cls, msg)); }
 function clearComposeAlert() { setHTML('composeAlert', ''); }
 
 async function doResetStatuses() {
-  if (!confirm('Reset all Sent/Failed statuses? Everyone will be re-sent to next time.')) return;
+  if (!(await uiConfirm('Reset all Sent/Failed statuses? Everyone will be re-sent to next time.'))) return;
   try {
     const r = await apiCall('resetStatuses', { sheetId: activeSheetId });
     setHTML('countResult', r.ok ? ib('info-green', '✅ Statuses cleared.') : ib('info-red', '❌ ' + esc(r.error)));
@@ -1100,7 +1100,7 @@ async function openPreviewModal() {
   const subject = document.getElementById('subject').value.trim();
   const body    = document.getElementById('body').value.trim();
   const htmlMode = document.getElementById('htmlMode').checked;
-  if (!subject && !body) { alert('Enter a subject and message first.'); return; }
+  if (!subject && !body) { uiAlert('Enter a subject and message first.'); return; }
   document.getElementById('previewSubject').textContent = subject || '(no subject)';
   document.getElementById('previewModal').classList.add('open');
   document.getElementById('previewFrame').srcdoc = '<p style="font-family:sans-serif;padding:20px;color:#555"><em>Loading preview…</em></p>';
@@ -1263,6 +1263,38 @@ async function saveNotifyEmail() {
 
 // ── INIT ──────────────────────────────────────────────────────
 
+
+// ── Styled in-app dialogs (replace native alert/confirm) ──────
+let _uiResolve = null;
+function _uiClose(val) {
+  document.getElementById('uiDialog').classList.remove('open');
+  if (_uiResolve) { const r = _uiResolve; _uiResolve = null; r(val); }
+}
+function uiConfirm(message, opts) {
+  opts = opts || {};
+  return new Promise((resolve) => {
+    _uiResolve = resolve;
+    document.getElementById('uiDialogMsg').innerHTML = esc(message).replace(/\n/g, '<br>');
+    const ok = document.getElementById('uiDialogOk');
+    const cancel = document.getElementById('uiDialogCancel');
+    cancel.style.display = '';
+    ok.textContent = opts.okText || 'OK';
+    ok.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+    document.getElementById('uiDialog').classList.add('open');
+  });
+}
+function uiAlert(message) {
+  return new Promise((resolve) => {
+    _uiResolve = resolve;
+    document.getElementById('uiDialogMsg').innerHTML = esc(message).replace(/\n/g, '<br>');
+    document.getElementById('uiDialogCancel').style.display = 'none';
+    const ok = document.getElementById('uiDialogOk');
+    ok.textContent = 'OK';
+    ok.className = 'btn btn-primary';
+    document.getElementById('uiDialog').classList.add('open');
+  });
+}
+
 function initApp() {
   // Tabs
   document.querySelectorAll('.tab').forEach(t =>
@@ -1371,6 +1403,9 @@ function initApp() {
   var _selFrom=document.getElementById('sendFromSelect');
   if(_selFrom){ _selFrom._prev=''; _selFrom.addEventListener('change', function(){ if(this.value==='__manage__'){ this.value=this._prev||''; openAliasModal(); } else { this._prev=this.value; } }); }
   var _bAdd=document.getElementById('btnAliasAdd'); if(_bAdd) _bAdd.addEventListener('click', addAlias);
+  var _uOk=document.getElementById('uiDialogOk'); if(_uOk) _uOk.addEventListener('click', function(){ _uiClose(true); });
+  var _uCancel=document.getElementById('uiDialogCancel'); if(_uCancel) _uCancel.addEventListener('click', function(){ _uiClose(false); });
+  var _uDlg=document.getElementById('uiDialog'); if(_uDlg) _uDlg.addEventListener('click', function(e){ if(e.target===this) _uiClose(false); });
   var _bClose=document.getElementById('btnAliasClose'); if(_bClose) _bClose.addEventListener('click', closeAliasModal);
   var _aMod=document.getElementById('aliasModal'); if(_aMod) _aMod.addEventListener('click', function(e){ if(e.target===this) closeAliasModal(); });
   renderAdhoc();

@@ -411,3 +411,13 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 .alias-actions { display:inline-flex; gap:6px; align-items:center; }
 .btn-mini { background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; padding:4px 10px; cursor:pointer; }
 .btn-mini:hover { opacity:.9; }
+
+/* Header brand icon */
+.hdr h1 .hdr-icon { width:22px; height:22px; vertical-align:-4px; border-radius:5px; margin-right:3px; }
+
+/* Styled dialog (replaces native alert/confirm) */
+.ui-dialog-box { max-width: 360px; width: calc(100% - 48px); margin: 24vh auto 0; padding: 22px; }
+.ui-dialog-msg { font-size: 15px; line-height: 1.55; color: var(--text, #eaf0f7); margin-bottom: 20px; }
+.ui-dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.ui-dialog-actions .btn { width: auto; padding: 10px 22px; }
+.btn-danger { background: var(--danger, #c0392b); color: #fff; }
