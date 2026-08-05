@@ -1,6 +1,6 @@
 {
-  "name": "Mail Merge",
-  "short_name": "Mail Merge",
+  "name": "Mail Merge One",
+  "short_name": "Mail Merge One",
   "description": "Gmail bulk sender with PDF attachments, templates, and unsubscribe handling",
   "start_url": "./index.html",
   "scope": "./",
