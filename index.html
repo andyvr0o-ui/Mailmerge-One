@@ -48,6 +48,14 @@
   <div class="panel active" id="panel-compose">
     <div id="composeAlert"></div>
 
+    <div class="card">
+      <label class="field-label" style="margin-top:0">Send From</label>
+      <select id="sendFromSelect">
+        <option value="">Default — your Gmail address</option>
+      </select>
+      <p class="hint" style="margin-top:4px">Pick who your merges send from. Add an alias with the ➕ option in the list.</p>
+    </div>
+
     <div class="card" style="padding:10px 14px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
@@ -266,12 +274,7 @@ Kind regards"></textarea>
 
     <div class="card">
       <div class="card-title">Sender Options</div>
-      <label class="field-label" style="margin-top:0">Send From</label>
-      <select id="sendFromSelect">
-        <option value="">Default — your Gmail address</option>
-      </select>
-      <p class="hint" style="margin-top:4px">Pick who your merges send from. Add an alias with the ➕ option in the list.</p>
-      <label class="field-label">Sender Name</label>
+      <label class="field-label" style="margin-top:0">Sender Name</label>
       <input type="text" id="senderName" placeholder="e.g. Jane Doe">
       <label class="field-label">Move sent emails to Gmail label</label>
       <input type="text" id="labelName" value="Mail Merge Sent">
