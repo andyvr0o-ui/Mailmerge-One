@@ -7,7 +7,7 @@
 // The Apps Script backend URL is baked in — it's harmless on its
 // own, since every action now requires a real, live Google sign-in
 // session (see MailMergePWA_Code.gs doPost). No setup step needed.
-const API_URL    = 'https://script.google.com/macros/s/AKfycbxv4Zxy4Pui9-5fU_SvzDfWh8iwvSrq7I09j80H7wVB3jOWW4WLnxsn1fppqZN4H35ebg/exec';
+const API_URL    = 'https://script.google.com/macros/s/AKfycbzUYXU1h7cxeVLSqyYHCqSLmVHQj2eWCkMQ-hoUT_34rxxmyhBkEJ6UcrUUl8VYUk75kg/exec';
 const LS_DRAFT    = 'mm_draft';
 
 // ── API HELPER ────────────────────────────────────────────────
@@ -1154,7 +1154,8 @@ async function saveSignature() {
 
 function getFromAddress() {
   const sel = document.getElementById('sendFromSelect');
-  return sel ? sel.value : '';
+  if (!sel) return '';
+  return sel.value === '__manage__' ? '' : sel.value;
 }
 
 function refreshSendFromDefault() {
@@ -1163,9 +1164,7 @@ function refreshSendFromDefault() {
   if (opt && email) opt.textContent = 'Default — ' + email;
 }
 
-// ── SEND-FROM ALIASES (ownership-verified via emailed code) ────
-let _aliasPending = '';
-
+// ── SEND-FROM ALIASES (simple account-saved list) ─────────────
 async function loadAliases() {
   refreshSendFromDefault();
   try {
@@ -1180,49 +1179,60 @@ function renderAliases(list) {
   if (sel) {
     const cur = sel.value;
     sel.innerHTML = '<option value="">Default — ' + esc(email) + '</option>'
-      + list.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+      + list.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('')
+      + '<option value="__manage__">➕ Add / manage aliases…</option>';
     if ([''].concat(list).indexOf(cur) !== -1) sel.value = cur;
   }
   const box = document.getElementById('aliasList');
   if (box) {
     box.innerHTML = list.length
-      ? list.map(a => `<div class="alias-row"><span>${esc(a)}</span><button class="alias-remove" data-alias="${esc(a)}" title="Remove">✕</button></div>`).join('')
-      : '<p class="hint">No aliases added yet.</p>';
-    box.querySelectorAll('.alias-remove').forEach(b =>
-      b.addEventListener('click', () => removeAlias(b.dataset.alias)));
+      ? list.map(a => `<div class="alias-row"><span>${esc(a)}</span><span class="alias-actions"><button class="btn-mini alias-test" data-alias="${esc(a)}">Test</button><button class="alias-remove" data-alias="${esc(a)}" title="Remove">✕</button></span></div>`).join('')
+      : '<p class="hint">No aliases yet — add one above.</p>';
+    box.querySelectorAll('.alias-remove').forEach(b => b.addEventListener('click', () => removeAlias(b.dataset.alias)));
+    box.querySelectorAll('.alias-test').forEach(b => b.addEventListener('click', () => sendAliasTest(b.dataset.alias)));
   }
 }
 
-async function sendAliasCode() {
+function openAliasModal() {
+  const to = document.getElementById('aliasTestTo');
+  if (to && !to.value) to.value = localStorage.getItem(LS_GOOGLE_EMAIL) || '';
+  setHTML('aliasAddMsg', ''); setHTML('aliasTestMsg', '');
+  document.getElementById('aliasModal').classList.add('open');
+}
+
+function closeAliasModal() {
+  document.getElementById('aliasModal').classList.remove('open');
+  const sel = document.getElementById('sendFromSelect');
+  if (sel && sel.value === '__manage__') sel.value = '';
+}
+
+async function addAlias() {
   const alias = document.getElementById('aliasInput').value.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(alias)) {
-    setHTML('aliasResult', ib('info-red', "That doesn't look like a valid email address.")); return;
+    setHTML('aliasAddMsg', ib('info-red', "That doesn't look like a valid email address.")); return;
   }
-  setHTML('aliasResult', sp() + 'Sending code…');
+  setHTML('aliasAddMsg', sp() + 'Adding…');
   try {
-    const r = await apiCall('sendAliasCode', { alias });
-    if (!r.ok) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(r.error))); return; }
-    _aliasPending = alias;
-    document.getElementById('aliasPendingLabel').textContent = alias;
-    document.getElementById('aliasCodeArea').style.display = 'block';
-    setHTML('aliasResult', ib('info-green', '✅ Code sent to ' + esc(alias) + '. Open that inbox and enter the code below.'));
-  } catch (e) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(e.message))); }
+    const r = await apiCall('addAlias', { alias });
+    if (!r.ok) { setHTML('aliasAddMsg', ib('info-red', '❌ ' + esc(r.error))); return; }
+    document.getElementById('aliasInput').value = '';
+    renderAliases(r.list || []);
+    setHTML('aliasAddMsg', ib('info-blue',
+      '🛸 <strong>Added!</strong> One thing before you send to the world: make sure <strong>' + esc(alias) + '</strong> is a real “Send mail as” in your Gmail. If it isn\'t, your emails quietly go out from your normal address instead — and there\'s no unsending an email once it\'s floating out there in the wild forever. <br><strong>Tip:</strong> hit <em>Test</em> below and check who it came from.'));
+  } catch (e) { setHTML('aliasAddMsg', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
-async function verifyAliasCode() {
-  if (!_aliasPending) { setHTML('aliasResult', ib('info-red', 'Send a code first.')); return; }
-  const code = document.getElementById('aliasCodeInput').value.trim();
-  setHTML('aliasResult', sp() + 'Verifying…');
+async function sendAliasTest(alias) {
+  const to = (document.getElementById('aliasTestTo').value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    setHTML('aliasTestMsg', ib('info-red', 'Enter a valid “Send a test to” address first.')); return;
+  }
+  setHTML('aliasTestMsg', sp() + 'Sending a test from ' + esc(alias) + '…');
   try {
-    const r = await apiCall('verifyAliasCode', { alias: _aliasPending, code });
-    if (!r.ok) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(r.error))); return; }
-    setHTML('aliasResult', ib('info-green', '🎉 ' + esc(_aliasPending) + ' verified and added! Make sure it\'s also a "Send mail as" address in your Gmail so sends go out as it.'));
-    document.getElementById('aliasInput').value = '';
-    document.getElementById('aliasCodeInput').value = '';
-    document.getElementById('aliasCodeArea').style.display = 'none';
-    _aliasPending = '';
-    renderAliases(r.list || []);
-  } catch (e) { setHTML('aliasResult', ib('info-red', '❌ ' + esc(e.message))); }
+    const r = await apiCall('sendAliasTest', { alias, to });
+    if (!r.ok) { setHTML('aliasTestMsg', ib('info-red', '❌ ' + esc(r.error))); return; }
+    setHTML('aliasTestMsg', ib('info-green', '✅ Test sent to ' + esc(to) + '. Open it and check it came <strong>from ' + esc(alias) + '</strong>. If it came from your normal address, add the alias in Gmail first.'));
+  } catch (e) { setHTML('aliasTestMsg', ib('info-red', '❌ ' + esc(e.message))); }
 }
 
 async function removeAlias(alias) {
@@ -1358,8 +1368,11 @@ function initApp() {
   loadNotifyEmail();
   loadAddressBookStatus();
   loadAliases();
-  var _bSend=document.getElementById('btnSendAliasCode'); if(_bSend) _bSend.addEventListener('click', sendAliasCode);
-  var _bVer=document.getElementById('btnVerifyAliasCode'); if(_bVer) _bVer.addEventListener('click', verifyAliasCode);
+  var _selFrom=document.getElementById('sendFromSelect');
+  if(_selFrom){ _selFrom._prev=''; _selFrom.addEventListener('change', function(){ if(this.value==='__manage__'){ this.value=this._prev||''; openAliasModal(); } else { this._prev=this.value; } }); }
+  var _bAdd=document.getElementById('btnAliasAdd'); if(_bAdd) _bAdd.addEventListener('click', addAlias);
+  var _bClose=document.getElementById('btnAliasClose'); if(_bClose) _bClose.addEventListener('click', closeAliasModal);
+  var _aMod=document.getElementById('aliasModal'); if(_aMod) _aMod.addEventListener('click', function(e){ if(e.target===this) closeAliasModal(); });
   renderAdhoc();
   initGoogleSignIn();
   checkGoogleStatus();

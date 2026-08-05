@@ -270,7 +270,7 @@ Kind regards"></textarea>
       <select id="sendFromSelect">
         <option value="">Default — your Gmail address</option>
       </select>
-      <p class="hint" style="margin-top:4px">Add verified send-from aliases under Settings → Send-from aliases.</p>
+      <p class="hint" style="margin-top:4px">Pick who your merges send from. Add an alias with the ➕ option in the list.</p>
       <label class="field-label">Sender Name</label>
       <input type="text" id="senderName" placeholder="e.g. Jane Doe">
       <label class="field-label">Move sent emails to Gmail label</label>
@@ -340,20 +340,6 @@ Kind regards"></textarea>
     </div>
 
     <div class="card">
-      <div class="card-title">Send-from aliases</div>
-      <p class="hint" style="margin-bottom:10px">Add an address you want to send from. We'll email a code to it to confirm you own that inbox. It must also be set up as a "Send mail as" address in your Gmail for sends to actually go out as it.</p>
-      <input type="text" id="aliasInput" placeholder="you@yourdomain.com" inputmode="email">
-      <button class="btn btn-primary" id="btnSendAliasCode" style="margin-top:8px">Send code</button>
-      <div id="aliasCodeArea" style="display:none;margin-top:12px">
-        <label class="field-label" style="margin-top:0">Enter the code emailed to <strong id="aliasPendingLabel"></strong></label>
-        <input type="text" id="aliasCodeInput" placeholder="6-digit code" inputmode="numeric" maxlength="6">
-        <button class="btn btn-secondary" id="btnVerifyAliasCode" style="margin-top:8px">Verify &amp; add</button>
-      </div>
-      <div id="aliasResult"></div>
-      <div id="aliasList" style="margin-top:12px"></div>
-    </div>
-
-    <div class="card">
       <div class="card-title">Support</div>
       <p class="hint" style="margin-bottom:10px">Mail Merge is free to use. If it saves you time, you can chip in to help keep it running and maintained — no pressure, genuinely.</p>
       <a class="btn btn-primary" href="https://ko-fi.com/avrbuilds" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none">☕ Support on Ko-fi</a>
@@ -363,6 +349,33 @@ Kind regards"></textarea>
 </div><!-- end #app -->
 
 <!-- ══ SHEET PICKER MODAL (shared: main sheets + address book) ══ -->
+<div class="modal-overlay" id="aliasModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>✉️ Send-from aliases</span>
+      <button id="btnAliasClose">✕</button>
+    </div>
+    <div style="padding:14px;background:var(--surface)">
+      <p class="hint" style="margin-top:0">Pick who your merges are sent from. An alias only works if it's a verified "Send mail as" in your Gmail — otherwise sends quietly go out from your normal address.</p>
+
+      <label class="field-label" style="margin-top:0">Add an alias</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="aliasInput" placeholder="you@yourdomain.com" inputmode="email" style="flex:1">
+        <button class="btn btn-primary" id="btnAliasAdd" style="width:auto;padding-left:18px;padding-right:18px">Add</button>
+      </div>
+      <div id="aliasAddMsg"></div>
+
+      <div id="aliasList" style="margin-top:14px"></div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+      <label class="field-label" style="margin-top:0">Send a test to</label>
+      <input type="text" id="aliasTestTo" placeholder="you@example.com" inputmode="email">
+      <p class="hint" style="margin-top:4px">Tip: send it to a <em>different</em> mailbox (not the alias itself), so you can clearly see which address it came from. Then tap “Test” on an alias above.</p>
+      <div id="aliasTestMsg"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sheetPickerModal">
   <div class="modal-box">
     <div class="modal-header">
