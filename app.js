@@ -1169,8 +1169,9 @@ async function loadAliases() {
   refreshSendFromDefault();
   try {
     const r = await apiCall('getAliases');
-    if (r.ok) renderAliases(r.list || []);
-  } catch (e) {}
+    if (r && r.ok) { renderAliases(r.list || []); }
+    else { renderAliases([]); console.error('getAliases returned:', r && r.error); }
+  } catch (e) { renderAliases([]); console.error('getAliases failed:', e); }
 }
 
 function renderAliases(list) {
